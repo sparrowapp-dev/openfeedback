@@ -65,12 +65,10 @@ export function VoteButton({
       if (localHasVoted) {
         await unvotePost(postId, currentUserId);
         setLocalHasVoted(false);
-        setLocalScore((s) => Math.max(0, s - 1));
         onVoteChange?.(false);
       } else {
         await votePost(postId, currentUserId);
         setLocalHasVoted(true);
-        setLocalScore((s) => s + 1);
         onVoteChange?.(true);
       }
     } catch (error) {
