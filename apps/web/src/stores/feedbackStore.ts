@@ -25,6 +25,7 @@ interface FeedbackState {
   
   // Filters
   statusFilter: PostStatus | null;
+  categoryFilter: string | null;
   sortBy: 'newest' | 'oldest' | 'score' | 'trending';
   searchQuery: string;
   
@@ -38,11 +39,12 @@ interface FeedbackState {
   setCurrentBoard: (board: IBoard | null) => void;
   setCurrentUser: (user: IUser | null) => void;
   setStatusFilter: (status: PostStatus | null) => void;
+  setCategoryFilter: (categoryId: string | null) => void;
   setSortBy: (sort: 'newest' | 'oldest' | 'score' | 'trending') => void;
   setSearchQuery: (query: string) => void;
   
   // Mutations
-  createPost: (input: { boardID: string; authorID: string; title: string; details?: string }) => Promise<IPost>;
+  createPost: (input: { boardID: string; authorID: string; title: string; details?: string; categoryID?: string }) => Promise<IPost>;
   votePost: (postID: string, voterID: string) => Promise<void>;
   unvotePost: (postID: string, voterID: string) => Promise<void>;
 }
@@ -62,6 +64,7 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
   hasMorePosts: true,
   postsSkip: 0,
   statusFilter: null,
+  categoryFilter: null,
   sortBy: 'newest',
   searchQuery: '',
 
@@ -91,6 +94,7 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
         skip: reset ? 0 : state.postsSkip,
         sort: state.sortBy,
         status: state.statusFilter || undefined,
+        categoryID: state.categoryFilter || undefined,
         search: state.searchQuery || undefined,
       });
       
@@ -163,6 +167,12 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
   // Set status filter
   setStatusFilter: (status) => {
     set({ statusFilter: status });
+    get().fetchPosts(undefined, true);
+  },
+
+  // Set category filter
+  setCategoryFilter: (categoryId) => {
+    set({ categoryFilter: categoryId });
     get().fetchPosts(undefined, true);
   },
 

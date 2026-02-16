@@ -49,7 +49,7 @@ export const boardListSchema = z.object({
 
 export const boardRetrieveSchema = z.object({
   apiKey: z.string().optional(),
-  id: objectIdSchema,
+  boardID: objectIdSchema,
 });
 
 export const boardCreateSchema = z.object({
@@ -96,6 +96,7 @@ export const postListSchema = z.object({
   boardID: objectIdSchema.optional(),
   authorID: objectIdSchema.optional(),
   ownerID: objectIdSchema.optional(),
+  categoryID: objectIdSchema.optional(),
   tagIDs: z.array(objectIdSchema).optional(),
   status: z.enum(['open', 'under review', 'planned', 'in progress', 'complete', 'closed']).optional(),
   sort: z.enum(['newest', 'oldest', 'score', 'statusChanged', 'trending']).default('newest').optional(),

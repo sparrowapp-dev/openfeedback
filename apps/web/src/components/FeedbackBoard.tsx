@@ -73,15 +73,19 @@ export function FeedbackBoard({
   const { isUserLoading } = useOpenFeedback();
   const {
     posts,
+    categories,
     isLoadingPosts,
     hasMorePosts,
     statusFilter,
+    categoryFilter,
     sortBy,
     searchQuery,
     setCurrentBoard,
     fetchPosts,
     fetchMorePosts,
+    fetchCategories,
     setStatusFilter,
+    setCategoryFilter,
     setSortBy,
     setSearchQuery,
     boards,
@@ -98,6 +102,7 @@ export function FeedbackBoard({
       // Board not in cache, fetch posts directly
       fetchPosts(boardId, true);
     }
+    fetchCategories(boardId);
   }, [boardId, boards]);
 
   // Debounced search
@@ -146,6 +151,22 @@ export function FeedbackBoard({
             )}
 
             <div className="of-flex of-items-center of-gap-2">
+              {/* Category Filter */}
+              {categories.length > 0 && (
+                <select
+                  value={categoryFilter || ''}
+                  onChange={(e) => setCategoryFilter(e.target.value || null)}
+                  className="of-px-3 of-py-2 of-text-sm of-border of-border-gray-200 of-rounded-lg of-bg-white focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/20 focus:of-border-primary"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat: any) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
               {/* Status Filter */}
               {showStatusFilter && (
                 <select

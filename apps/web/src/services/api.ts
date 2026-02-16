@@ -170,11 +170,15 @@ export async function retrieveUser(params: { id?: string; userID?: string; email
 
 export interface ListPostsParams {
   boardID?: string;
+  authorID?: string;
+  ownerID?: string;
+  categoryID?: string;
+  tagIDs?: string[];
+  status?: PostStatus;
+  sort?: 'newest' | 'oldest' | 'score' | 'statusChanged' | 'trending';
+  search?: string;
   limit?: number;
   skip?: number;
-  sort?: 'newest' | 'oldest' | 'score' | 'statusChanged' | 'trending';
-  status?: PostStatus;
-  search?: string;
 }
 
 export async function listPosts(params: ListPostsParams = {}): Promise<{ hasMore: boolean; posts: IPost[] }> {
@@ -191,6 +195,10 @@ export async function createPost(input: Omit<IPostCreateInput, 'boardID'> & { bo
 
 export async function updatePost(postID: string, changes: Partial<IPost>): Promise<IPost> {
   return apiRequest('/posts/update', { postID, ...changes });
+}
+
+export async function changePostStatus(postID: string, status: PostStatus, changerID?: string): Promise<IPost> {
+  return apiRequest('/posts/change_status', { postID, status, changerID });
 }
 
 // ============ Votes API ============
@@ -221,4 +229,12 @@ export async function createComment(input: ICommentCreateInput): Promise<ICommen
 
 export async function listCategories(boardID: string): Promise<{ categories: ICategory[] }> {
   return apiRequest('/categories/list', { boardID });
+}
+
+export async function createCategory(boardID: string, name: string): Promise<ICategory> {
+  return apiRequest('/categories/create', { boardID, name });
+}
+
+export async function deleteCategory(id: string): Promise<string> {
+  return apiRequest('/categories/delete', { id });
 }

@@ -10,6 +10,7 @@ export interface IBoardDocument extends Document {
   isPrivate: boolean;
   privateComments: boolean;
   postCount: number;
+  statuses: string[]; // Available statuses for this board
   created: Date;
 }
 
@@ -50,6 +51,10 @@ const boardSchema = new Schema<IBoardDocument, IBoardModel>({
     type: Number,
     default: 0,
     min: 0,
+  },
+  statuses: {
+    type: [String],
+    default: ['open', 'planned', 'in progress', 'complete'],
   },
   created: {
     type: Date,

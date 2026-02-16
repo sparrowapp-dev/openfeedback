@@ -5,7 +5,7 @@ export { LoginPage, SignupPage } from './auth';
 export { DashboardPage } from './dashboard';
 
 // Board pages
-export { BoardPage, RoadmapPage } from './board';
+export { BoardPage, RoadmapPage, BoardCategoriesPage } from './board';
 
 // Post pages
 export { PostDetailPage } from './post';

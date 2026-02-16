@@ -13,6 +13,7 @@ import {
   FunnelIcon,
   ChevronLeftIcon,
   MapIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -40,18 +41,22 @@ export function BoardPage() {
   const {
     currentBoard,
     posts,
+    categories,
     isLoadingPosts,
     hasMorePosts,
     sortBy,
     statusFilter,
+    categoryFilter,
     searchQuery,
     userVotes,
     fetchPosts,
     fetchMorePosts,
     fetchUserVotes,
+    fetchCategories,
     setCurrentBoard,
     setSortBy,
     setStatusFilter,
+    setCategoryFilter,
     setSearchQuery,
     votePost,
     unvotePost,
@@ -64,6 +69,7 @@ export function BoardPage() {
     if (boardId) {
       // Fetch board and posts
       fetchPosts(boardId, true);
+      fetchCategories(boardId);
     }
   }, [boardId]);
 
@@ -124,6 +130,13 @@ export function BoardPage() {
               Roadmap
             </Button>
           </Link>
+          {user?.isAdmin && (
+            <Link to={`/board/${boardId}/categories`}>
+              <Button variant="outline" leftIcon={<TagIcon className="of-w-4 of-h-4" />}>
+                Categories
+              </Button>
+            </Link>
+          )}
           <Button
             onClick={() => setShowNewPostModal(true)}
             leftIcon={<PlusIcon className="of-w-5 of-h-5" />}
@@ -145,6 +158,16 @@ export function BoardPage() {
             />
           </div>
           <div className="of-flex of-gap-2">
+            {categories.length > 0 && (
+              <Select
+                value={categoryFilter || ''}
+                onChange={(val) => setCategoryFilter(val || null)}
+                options={[
+                  { value: '', label: 'All Categories' },
+                  ...categories.map(cat => ({ value: cat.id, label: cat.name }))
+                ]}
+              />
+            )}
             <Select
               value={statusFilter || ''}
               onChange={(val) => setStatusFilter(val as PostStatus | null)}

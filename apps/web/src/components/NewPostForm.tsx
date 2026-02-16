@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOpenFeedback } from '../hooks/useOpenFeedback';
 import { useFeedbackStore } from '../stores/feedbackStore';
+import type { ICategory } from '@openfeedback/shared';
+import * as api from '../services/api';
 
 export interface NewPostFormProps {
   /** Board ID to create post on */
@@ -37,8 +39,23 @@ export function NewPostForm({
   const { createPost } = useFeedbackStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
+  const [categoryID, setCategoryID] = useState<string>('');
+  const [categories, setCategories] = useState<ICategory[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch categories for this board
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const result = await api.listCategories(boardId);
+        setCategories(result.categories);
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    };
+    loadCategories();
+  }, [boardId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +76,7 @@ export function NewPostForm({
         authorID,
         title: title.trim(),
         details: details.trim() || undefined,
+        categoryID: categoryID || undefined,
       });
 
       onSuccess?.(post.id);
@@ -107,6 +125,29 @@ export function NewPostForm({
         />
       </div>
 
+      {/* Category */}
+      {categories.length > 0 && (
+        <div className="of-mb-4">
+          <label htmlFor="of-post-category" className="of-block of-text-sm of-font-medium of-text-gray-700 of-mb-1">
+            Category <span className="of-text-red-500">*</span>
+          </label>
+          <select
+            id="of-post-category"
+            value={categoryID}
+            onChange={(e) => setCategoryID(e.target.value)}
+            required
+            className="of-w-full of-px-3 of-py-2 of-text-sm of-border of-border-gray-200 of-rounded-lg focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/20 focus:of-border-primary"
+          >
+            <option value="">Select a category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Details */}
       <div className="of-mb-4">
         <label htmlFor="of-post-details" className="of-block of-text-sm of-font-medium of-text-gray-700 of-mb-1">
@@ -135,7 +176,7 @@ export function NewPostForm({
         )}
         <button
           type="submit"
-          disabled={!title.trim() || isSubmitting}
+          disabled={!title.trim() || (categories.length > 0 && !categoryID) || isSubmitting}
           className="of-px-4 of-py-2 of-text-sm of-font-medium of-text-white of-bg-primary of-rounded-lg hover:of-bg-primary-dark of-transition-colors disabled:of-opacity-50 disabled:of-cursor-not-allowed"
         >
           {isSubmitting ? 'Submitting...' : 'Submit Feedback'}

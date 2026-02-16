@@ -3,40 +3,51 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useFeedbackStore } from '../../stores/feedbackStore';
 import { useOpenFeedback } from '../../hooks/useOpenFeedback';
-import { Button, Card, Textarea, Spinner, Avatar, Badge, Select } from '../../components/ui';
+import { Button, Card, Textarea, Spinner, Avatar, Badge } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
 import { VoteButton } from '../../components/VoteButton';
-import type { PostStatus, IComment } from '@openfeedback/shared';
+import type { PostStatus, IComment, ICategory } from '@openfeedback/shared';
 import {
   ChevronLeftIcon,
   ChatBubbleLeftIcon,
-  PencilIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import * as api from '../../services/api';
-
-const STATUS_OPTIONS = [
-  { value: 'open', label: 'Open' },
-  { value: 'under review', label: 'Under Review' },
-  { value: 'planned', label: 'Planned' },
-  { value: 'in progress', label: 'In Progress' },
-  { value: 'complete', label: 'Complete' },
-  { value: 'closed', label: 'Closed' },
-];
 
 export function PostDetailPage() {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const { ensureUser, isGuest, isUserLoading } = useOpenFeedback();
-  const { currentPost, isLoadingPost, userVotes, fetchPost, fetchUserVotes, votePost, unvotePost } = useFeedbackStore();
+  const { currentPost, isLoadingPost, userVotes, boards, fetchPost, fetchUserVotes, votePost, unvotePost } = useFeedbackStore();
   
   const [comments, setComments] = useState<IComment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [isEditingStatus, setIsEditingStatus] = useState(false);
-  const [newStatus, setNewStatus] = useState<PostStatus>('open');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
+  const [categories, setCategories] = useState<ICategory[]>([]);
+
+  // Get current board to retrieve available statuses
+  const currentBoard = currentPost?.board ? boards.find(b => b.id === currentPost.board.id) : null;
+  const availableStatuses = (currentBoard?.statuses || ['open', 'planned', 'in progress', 'complete']) as string[];
+
+  // Load categories when board is available
+  useEffect(() => {
+    if (currentPost?.board?.id) {
+      loadCategories(currentPost.board.id);
+    }
+  }, [currentPost?.board?.id]);
+
+  const loadCategories = async (boardId: string) => {
+    try {
+      const result = await api.listCategories(boardId);
+      setCategories(result.categories);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
 
   useEffect(() => {
     if (postId) {
@@ -51,12 +62,6 @@ export function PostDetailPage() {
       fetchUserVotes(user.id);
     }
   }, [user?.id, fetchUserVotes]);
-
-  useEffect(() => {
-    if (currentPost) {
-      setNewStatus(currentPost.status);
-    }
-  }, [currentPost]);
 
   const loadComments = async () => {
     if (!postId) return;
@@ -115,16 +120,45 @@ export function PostDetailPage() {
     }
   };
 
-  const handleStatusUpdate = async () => {
-    if (!postId || !user?.isAdmin) return;
+  const handleStatusChange = async (newStatus: string) => {
+    if (!postId || !user?.isAdmin || !currentPost) return;
     
+    // Don't update if status hasn't changed
+    if (newStatus === currentPost.status) return;
+    
+    setIsUpdatingStatus(true);
     try {
-      await api.updatePost(postId, { status: newStatus });
-      fetchPost(postId);
-      setIsEditingStatus(false);
+      await api.changePostStatus(postId, newStatus as PostStatus, user.id);
+      await fetchPost(postId);
       toast.success('Status updated!');
-    } catch {
+    } catch (err) {
+      console.error('Status update error:', err);
       toast.error('Failed to update status');
+      // Revert the UI by refetching
+      await fetchPost(postId);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleCategoryChange = async (newCategoryId: string) => {
+    if (!postId || !user?.isAdmin || !currentPost) return;
+    
+    // Don't update if category hasn't changed
+    if (newCategoryId === (currentPost.category?.id || '')) return;
+    
+    setIsUpdatingCategory(true);
+    try {
+      await api.updatePost(postId, { categoryID: newCategoryId || null } as any);
+      await fetchPost(postId);
+      toast.success('Category updated!');
+    } catch (err) {
+      console.error('Category update error:', err);
+      toast.error('Failed to update category');
+      // Revert the UI by refetching
+      await fetchPost(postId);
+    } finally {
+      setIsUpdatingCategory(false);
     }
   };
 
@@ -213,38 +247,46 @@ export function PostDetailPage() {
 
             {/* Admin Actions */}
             {user?.isAdmin && (
-              <div className="of-mt-4 of-pt-4 of-border-t">
+              <div className="of-mt-4 of-pt-4 of-border-t of-space-y-3">
                 <div className="of-flex of-items-center of-gap-2">
-                  <span className="of-text-sm of-font-medium of-text-gray-700">Status:</span>
-                  {isEditingStatus ? (
-                    <div className="of-flex of-items-center of-gap-2">
-                      <Select
-                        value={newStatus}
-                        onChange={(val) => setNewStatus(val as PostStatus)}
-                        options={STATUS_OPTIONS}
-                      />
-                      <Button size="sm" onClick={handleStatusUpdate}>
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsEditingStatus(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setIsEditingStatus(true)}
-                      leftIcon={<PencilIcon className="of-w-4 of-h-4" />}
-                    >
-                      Edit Status
-                    </Button>
+                  <span className="of-text-sm of-font-medium of-text-gray-700 of-min-w-[70px]">Status:</span>
+                  <select
+                    value={currentPost.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={isUpdatingStatus}
+                    className="of-px-3 of-py-1.5 of-text-sm of-border of-border-gray-200 of-rounded-lg of-bg-white focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/20 focus:of-border-primary disabled:of-opacity-50 disabled:of-cursor-not-allowed"
+                  >
+                    {availableStatuses.map((status: string) => (
+                      <option key={status} value={status}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  {isUpdatingStatus && (
+                    <Spinner size="sm" />
                   )}
                 </div>
+                {categories.length > 0 && (
+                  <div className="of-flex of-items-center of-gap-2">
+                    <span className="of-text-sm of-font-medium of-text-gray-700 of-min-w-[70px]">Category:</span>
+                    <select
+                      value={currentPost.category?.id || ''}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
+                      disabled={isUpdatingCategory}
+                      className="of-px-3 of-py-1.5 of-text-sm of-border of-border-gray-200 of-rounded-lg of-bg-white focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/20 focus:of-border-primary disabled:of-opacity-50 disabled:of-cursor-not-allowed"
+                    >
+                      <option value="">No category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {isUpdatingCategory && (
+                      <Spinner size="sm" />
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

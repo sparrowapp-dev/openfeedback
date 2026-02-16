@@ -71,7 +71,7 @@ export const listPosts = asyncHandler(async (req: Request, res: Response): Promi
   }
   
   const { skip, limit } = parsePaginationParams(req.body);
-  const { boardID, authorID, ownerID, status, sort, search, tagIDs } = req.body;
+  const { boardID, authorID, ownerID, categoryID, status, sort, search, tagIDs } = req.body;
 
   // Build query
   const query: Record<string, unknown> = { companyID };
@@ -85,6 +85,7 @@ export const listPosts = asyncHandler(async (req: Request, res: Response): Promi
   
   if (authorID) query.authorID = new mongoose.Types.ObjectId(authorID);
   if (ownerID) query.ownerID = new mongoose.Types.ObjectId(ownerID);
+  if (categoryID) query.categoryID = new mongoose.Types.ObjectId(categoryID);
   if (status) query.status = status;
   if (tagIDs && tagIDs.length > 0) {
     query.tagIDs = { $in: tagIDs.map((id: string) => new mongoose.Types.ObjectId(id)) };

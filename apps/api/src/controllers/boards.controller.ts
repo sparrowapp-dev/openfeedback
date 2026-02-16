@@ -137,14 +137,14 @@ export const createBoard = asyncHandler(async (req: Request, res: Response): Pro
  * Delete a board
  */
 export const deleteBoard = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.body;
+  const { boardID } = req.body;
   const companyID = req.company!._id;
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!mongoose.Types.ObjectId.isValid(boardID)) {
     throw new AppError('invalid board id', 400);
   }
 
-  const board = await Board.findOneAndDelete({ _id: id, companyID });
+  const board = await Board.findOneAndDelete({ _id: boardID, companyID });
 
   if (!board) {
     throw new AppError('board not found', 404);

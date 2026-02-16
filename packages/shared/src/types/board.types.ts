@@ -15,6 +15,8 @@ export interface IBoard {
   postCount: number;
   /** Whether comments are private by default */
   privateComments?: boolean;
+  /** Available statuses for posts on this board */
+  statuses?: string[];
   /** Board access token */
   token: string;
   /** Public URL/slug for the board */

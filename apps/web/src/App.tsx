@@ -9,6 +9,7 @@ import {
   DashboardPage,
   BoardPage,
   RoadmapPage,
+  BoardCategoriesPage,
   PostDetailPage,
   AdminBoardsPage,
   AdminSettingsPage,
@@ -75,6 +76,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <RoadmapPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/board/:boardId/categories"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <BoardCategoriesPage />
             </Layout>
           </ProtectedRoute>
         }
