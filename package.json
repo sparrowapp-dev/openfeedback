@@ -1,0 +1,27 @@
+{
+  "name": "openfeedback",
+  "version": "1.0.0",
+  "description": "Self-hosted, open-source alternative to Canny.io",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:api": "pnpm --filter @openfeedback/api dev",
+    "dev:web": "pnpm --filter @openfeedback/web dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "clean": "pnpm -r run clean"
+  },
+  "keywords": [
+    "feedback",
+    "canny",
+    "feature-requests",
+    "roadmap",
+    "self-hosted"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

@@ -1,0 +1,387 @@
+import { Router, Request, Response, NextFunction } from 'express';
+import passport from 'passport';
+import bcrypt from 'bcryptjs';
+import { User, Company } from '../../models/index.js';
+import { generateTokens, verifyToken } from '../../services/auth.service.js';
+import { asyncHandler, AppError, apiKeyAuth } from '../../middlewares/index.js';
+import { config } from '../../config/index.js';
+
+const router = Router();
+
+/**
+ * GET /auth/google
+ * Initiate Google OAuth flow
+ * Query params:
+ *   - companyId: Company ID to associate user with
+ *   - redirect: URL to redirect after auth (for desktop apps)
+ */
+router.get(
+  '/google',
+  (req: Request, res: Response, next: NextFunction) => {
+    const { companyId, redirect } = req.query;
+    
+    // Store state in session/query for callback
+    const state = Buffer.from(JSON.stringify({ 
+      companyId, 
+      redirect: redirect || config.frontendUrl 
+    })).toString('base64');
+
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      state,
+    })(req, res, next);
+  }
+);
+
+/**
+ * GET /auth/google/callback
+ * Google OAuth callback
+ * Handles both web redirects and desktop app deep links
+ */
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/auth/failure' }),
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const profile = req.user as { googleId: string; email: string; name: string; avatarURL?: string };
+    
+    if (!profile) {
+      throw new AppError('authentication failed', 401);
+    }
+
+    // Decode state to get company ID and redirect URL
+    let companyId: string | undefined;
+    let redirectUrl = config.frontendUrl;
+    
+    try {
+      const state = req.query.state as string;
+      if (state) {
+        const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
+        companyId = decoded.companyId;
+        redirectUrl = decoded.redirect || config.frontendUrl;
+      }
+    } catch (e) {
+      // Use defaults if state parsing fails
+    }
+
+    if (!companyId) {
+      throw new AppError('company ID required for authentication', 400);
+    }
+
+    // Verify company exists
+    const company = await Company.findById(companyId);
+    if (!company) {
+      throw new AppError('company not found', 404);
+    }
+
+    // Create or update user in the company
+    const user = await User.findOneAndUpdate(
+      { companyID: company._id, email: profile.email },
+      {
+        $set: {
+          name: profile.name,
+          avatarURL: profile.avatarURL,
+          isShadow: false,
+          lastActivity: new Date(),
+        },
+        $setOnInsert: {
+          companyID: company._id,
+          userID: `google_${profile.googleId}`,
+          email: profile.email,
+          isAdmin: false,
+          created: new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    // Handle different redirect scenarios
+    if (redirectUrl.startsWith('openfeedback://') || redirectUrl.startsWith('tauri://')) {
+      // Desktop app deep link
+      const deepLink = `${redirectUrl}?token=${accessToken}&refreshToken=${refreshToken}&userId=${user._id}`;
+      res.redirect(deepLink);
+    } else if (req.query.popup === 'true') {
+      // Popup window - use postMessage
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Authentication Complete</title></head>
+          <body>
+            <script>
+              window.opener.postMessage({
+                type: 'OPENFEEDBACK_AUTH',
+                token: '${accessToken}',
+                refreshToken: '${refreshToken}',
+                userId: '${user._id}'
+              }, '${redirectUrl}');
+              window.close();
+            </script>
+            <p>Authentication complete. This window should close automatically.</p>
+          </body>
+        </html>
+      `);
+    } else {
+      // Standard web redirect with tokens in query
+      const separator = redirectUrl.includes('?') ? '&' : '?';
+      res.redirect(`${redirectUrl}${separator}token=${accessToken}&userId=${user._id}`);
+    }
+  })
+);
+
+/**
+ * GET /auth/failure
+ * Authentication failure handler
+ */
+router.get('/failure', (req: Request, res: Response) => {
+  res.status(401).json({ error: 'authentication failed' });
+});
+
+/**
+ * POST /auth/login
+ * Email/password login
+ */
+router.post(
+  '/login',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { email, password, companyId } = req.body;
+
+    if (!email || !password) {
+      throw new AppError('email and password are required', 400);
+    }
+
+    // Find company - use demo company if not specified
+    let company;
+    if (companyId) {
+      company = await Company.findById(companyId);
+    } else {
+      company = await Company.findOne({ subdomain: 'demo' });
+    }
+
+    if (!company) {
+      throw new AppError('company not found', 404);
+    }
+
+    // Find user by email
+    const user = await User.findOne({ companyID: company._id, email: email.toLowerCase() });
+    if (!user) {
+      throw new AppError('invalid email or password', 401);
+    }
+
+    // Check password (stored in customFields.passwordHash)
+    const passwordHash = user.customFields?.passwordHash as string;
+    if (!passwordHash) {
+      throw new AppError('password login not enabled for this account', 401);
+    }
+
+    const isValid = await bcrypt.compare(password, passwordHash);
+    if (!isValid) {
+      throw new AppError('invalid email or password', 401);
+    }
+
+    // Update last activity
+    user.lastActivity = new Date();
+    await user.save();
+
+    // Generate tokens
+    const tokens = generateTokens(user);
+
+    res.json({
+      ...tokens,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        avatarURL: user.avatarURL,
+        companyId: company._id.toString(),
+      },
+    });
+  })
+);
+
+/**
+ * POST /auth/signup
+ * Email/password signup
+ */
+router.post(
+  '/signup',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { email, password, name, companyId } = req.body;
+
+    if (!email || !password || !name) {
+      throw new AppError('email, password, and name are required', 400);
+    }
+
+    if (password.length < 6) {
+      throw new AppError('password must be at least 6 characters', 400);
+    }
+
+    // Find company - use demo company if not specified
+    let company;
+    if (companyId) {
+      company = await Company.findById(companyId);
+    } else {
+      company = await Company.findOne({ subdomain: 'demo' });
+    }
+
+    if (!company) {
+      throw new AppError('company not found', 404);
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ companyID: company._id, email: email.toLowerCase() });
+    if (existingUser) {
+      throw new AppError('user with this email already exists', 409);
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await User.create({
+      companyID: company._id,
+      userID: `email_${Date.now()}`,
+      name,
+      email: email.toLowerCase(),
+      isAdmin: false,
+      isShadow: false,
+      customFields: {
+        passwordHash,
+      },
+    });
+
+    // Get company API key
+    const companyWithKey = await Company.findById(company._id).select('+apiKey');
+    const apiKey = companyWithKey?.apiKey;
+
+    // Generate tokens
+    const tokens = generateTokens(user);
+
+    res.status(201).json({
+      ...tokens,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        avatarURL: user.avatarURL,
+        companyId: company._id.toString(),
+      },
+    });
+  })
+);
+
+/**
+ * GET /auth/me
+ * Get current user from JWT token
+ * Requires Authorization: Bearer <token> header
+ */
+router.get(
+  '/me',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new AppError('authorization header required', 401);
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    try {
+      const payload = verifyToken(token);
+      const user = await User.findById(payload.userId);
+
+      if (!user) {
+        throw new AppError('user not found', 404);
+      }
+
+      res.json({
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin,
+          avatarURL: user.avatarURL,
+          companyId: user.companyID.toString(),
+        },
+      });
+    } catch (error) {
+      throw new AppError('invalid or expired token', 401);
+    }
+  })
+);
+
+/**
+ * POST /auth/refresh
+ * Refresh access token using refresh token
+ */
+router.post(
+  '/refresh',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new AppError('refresh token required', 400);
+    }
+
+    try {
+      const payload = verifyToken(refreshToken);
+      const user = await User.findById(payload.userId);
+
+      if (!user) {
+        throw new AppError('user not found', 404);
+      }
+
+      const tokens = generateTokens(user);
+      res.json(tokens);
+    } catch (error) {
+      throw new AppError('invalid refresh token', 401);
+    }
+  })
+);
+
+/**
+ * POST /auth/verify
+ * Verify a token and return user info
+ */
+router.post(
+  '/verify',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { token } = req.body;
+
+    if (!token) {
+      throw new AppError('token required', 400);
+    }
+
+    try {
+      const payload = verifyToken(token);
+      const user = await User.findById(payload.userId);
+
+      if (!user) {
+        throw new AppError('user not found', 404);
+      }
+
+      res.json({
+        valid: true,
+        user: user.toJSON(),
+      });
+    } catch (error) {
+      res.json({
+        valid: false,
+        error: 'invalid or expired token',
+      });
+    }
+  })
+);
+
+/**
+ * POST /auth/logout
+ * Logout user (client-side token removal, this is a no-op on server)
+ */
+router.post('/logout', (req: Request, res: Response) => {
+  res.json({ success: true, message: 'logged out' });
+});
+
+export const authRoutes = router;

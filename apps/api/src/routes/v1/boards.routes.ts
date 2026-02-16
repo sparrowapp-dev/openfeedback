@@ -1,0 +1,19 @@
+import { Router } from 'express';
+import { flexibleAuth, optionalApiKeyAuth, validate, boardListSchema, boardRetrieveSchema, boardCreateSchema } from '../../middlewares/index.js';
+import { listBoards, retrieveBoard, createBoard, deleteBoard } from '../../controllers/index.js';
+
+const router = Router();
+
+// POST /boards/list - List all boards (public)
+router.post('/list', optionalApiKeyAuth, validate(boardListSchema), listBoards);
+
+// POST /boards/retrieve - Get a single board (public)
+router.post('/retrieve', optionalApiKeyAuth, validate(boardRetrieveSchema), retrieveBoard);
+
+// POST /boards/create - Create a new board (requires auth)
+router.post('/create', flexibleAuth, validate(boardCreateSchema), createBoard);
+
+// POST /boards/delete - Delete a board (requires auth)
+router.post('/delete', flexibleAuth, validate(boardRetrieveSchema), deleteBoard);
+
+export const boardsRoutes = router;

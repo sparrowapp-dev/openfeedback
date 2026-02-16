@@ -1,0 +1,56 @@
+{
+  "name": "@openfeedback/web",
+  "version": "1.0.0",
+  "description": "OpenFeedback React components - embeddable feedback widgets",
+  "type": "module",
+  "main": "./dist/openfeedback.umd.cjs",
+  "module": "./dist/openfeedback.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/openfeedback.js",
+      "require": "./dist/openfeedback.umd.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./styles.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:lib": "tsc && vite build --mode lib",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
+    "@openfeedback/shared": "workspace:*",
+    "clsx": "^2.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.13.0",
+    "uuid": "^9.0.1",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/uuid": "^9.0.8",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.10",
+    "vite-plugin-dts": "^3.7.0"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  }
+}

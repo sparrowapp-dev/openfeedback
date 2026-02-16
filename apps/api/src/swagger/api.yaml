@@ -1,0 +1,1172 @@
+paths:
+  # ==================== BOARDS ====================
+  /boards/list:
+    post:
+      tags:
+        - Boards
+      summary: List all boards
+      description: Returns all boards for the authenticated company.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+                  description: Your API key
+            example:
+              apiKey: ""
+      responses:
+        '200':
+          description: List of boards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  boards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Board'
+              example:
+                boards:
+                  - id: "507f1f77bcf86cd799439011"
+                    name: "Feature Requests"
+                    isPrivate: false
+                    privateComments: false
+                    postCount: 42
+                    url: "https://feedback.example.com/boards/feature-requests"
+                    created: "2024-01-15T10:30:00.000Z"
+                  - id: "507f1f77bcf86cd799439012"
+                    name: "Bug Reports"
+                    isPrivate: false
+                    privateComments: true
+                    postCount: 18
+                    url: "https://feedback.example.com/boards/bug-reports"
+                    created: "2024-01-16T14:00:00.000Z"
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              example:
+                error: "invalid api key"
+
+  /boards/retrieve:
+    post:
+      tags:
+        - Boards
+      summary: Get a board by ID
+      description: Returns a single board by its ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - id
+              properties:
+                apiKey:
+                  type: string
+                id:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              id: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Board details
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439011"
+                name: "Feature Requests"
+                isPrivate: false
+                privateComments: false
+                postCount: 42
+                url: "https://feedback.example.com/boards/feature-requests"
+                created: "2024-01-15T10:30:00.000Z"
+        '404':
+          description: Board not found
+          content:
+            application/json:
+              example:
+                error: "board not found"
+
+  /boards/create:
+    post:
+      tags:
+        - Boards
+      summary: Create a new board
+      description: Creates a new feedback board.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - name
+              properties:
+                apiKey:
+                  type: string
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                isPrivate:
+                  type: boolean
+                  default: false
+                privateComments:
+                  type: boolean
+                  default: false
+            example:
+              apiKey: ""
+              name: "Feature Requests"
+              isPrivate: false
+              privateComments: false
+      responses:
+        '201':
+          description: Board created successfully
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439011"
+
+  /boards/delete:
+    post:
+      tags:
+        - Boards
+      summary: Delete a board
+      description: Deletes a board and all associated posts, votes, and comments.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - id
+              properties:
+                apiKey:
+                  type: string
+                id:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              id: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Board deleted successfully
+          content:
+            application/json:
+              example:
+                success: true
+
+  # ==================== POSTS ====================
+  /posts/list:
+    post:
+      tags:
+        - Posts
+      summary: List posts with filtering
+      description: Returns posts with optional filtering by board, author, status, tags, and search.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+                authorID:
+                  $ref: '#/components/schemas/ObjectId'
+                status:
+                  type: string
+                  enum: [open, under review, planned, in progress, complete, closed]
+                tagIDs:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ObjectId'
+                search:
+                  type: string
+                  description: Search posts by title or details
+                sort:
+                  type: string
+                  enum: [newest, oldest, score, statusChanged, trending]
+                  default: newest
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 10
+                skip:
+                  type: integer
+                  minimum: 0
+                  default: 0
+            example:
+              apiKey: ""
+              boardID: "507f1f77bcf86cd799439011"
+              status: "open"
+              sort: "score"
+              limit: 20
+              skip: 0
+      responses:
+        '200':
+          description: Paginated list of posts
+          content:
+            application/json:
+              example:
+                posts:
+                  - id: "507f1f77bcf86cd799439021"
+                    title: "Add dark mode support"
+                    details: "It would be great to have a dark mode option for the app."
+                    status: "planned"
+                    score: 42
+                    commentCount: 5
+                    author:
+                      id: "507f1f77bcf86cd799439031"
+                      name: "John Doe"
+                      email: "john@example.com"
+                    board:
+                      id: "507f1f77bcf86cd799439011"
+                      name: "Feature Requests"
+                    created: "2024-01-20T09:00:00.000Z"
+                hasMore: true
+
+  /posts/retrieve:
+    post:
+      tags:
+        - Posts
+      summary: Get a post by ID
+      description: Returns a single post with all details including board, author, category, and tags.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - id
+              properties:
+                apiKey:
+                  type: string
+                id:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              id: "507f1f77bcf86cd799439021"
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439021"
+                title: "Add dark mode support"
+                details: "It would be great to have a dark mode option for the app."
+                status: "planned"
+                score: 42
+                commentCount: 5
+                author:
+                  id: "507f1f77bcf86cd799439031"
+                  name: "John Doe"
+                  email: "john@example.com"
+                board:
+                  id: "507f1f77bcf86cd799439011"
+                  name: "Feature Requests"
+                category:
+                  id: "507f1f77bcf86cd799439041"
+                  name: "UI/UX"
+                tags:
+                  - id: "507f1f77bcf86cd799439051"
+                    name: "high-priority"
+                created: "2024-01-20T09:00:00.000Z"
+                statusChangedAt: "2024-01-25T14:30:00.000Z"
+
+  /posts/create:
+    post:
+      tags:
+        - Posts
+      summary: Create a new post
+      description: Creates a new feedback post in a board.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - authorID
+                - boardID
+                - title
+              properties:
+                apiKey:
+                  type: string
+                authorID:
+                  $ref: '#/components/schemas/ObjectId'
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                details:
+                  type: string
+                  maxLength: 50000
+                categoryID:
+                  $ref: '#/components/schemas/ObjectId'
+                imageURLs:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+            example:
+              apiKey: ""
+              authorID: "507f1f77bcf86cd799439031"
+              boardID: "507f1f77bcf86cd799439011"
+              title: "Add dark mode support"
+              details: "It would be great to have a dark mode option for the app. This would help reduce eye strain when using the app at night."
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439021"
+
+  /posts/change_status:
+    post:
+      tags:
+        - Posts
+      summary: Change post status
+      description: Updates the status of a post (e.g., open, planned, in progress, complete).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - postID
+                - changerID
+                - status
+              properties:
+                apiKey:
+                  type: string
+                postID:
+                  $ref: '#/components/schemas/ObjectId'
+                changerID:
+                  $ref: '#/components/schemas/ObjectId'
+                  description: ID of the user making the change
+                status:
+                  type: string
+                  enum: [open, under review, planned, in progress, complete, closed]
+                commentValue:
+                  type: string
+                  description: Optional comment to add when changing status
+            example:
+              apiKey: ""
+              postID: "507f1f77bcf86cd799439021"
+              changerID: "507f1f77bcf86cd799439031"
+              status: "in progress"
+              commentValue: "We're starting work on this feature!"
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              example:
+                success: true
+
+  # ==================== USERS ====================
+  /users/create_or_update:
+    post:
+      tags:
+        - Users
+      summary: Create or update a user
+      description: Creates a new user or updates an existing one based on userID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - userID
+                - name
+              properties:
+                apiKey:
+                  type: string
+                userID:
+                  type: string
+                  description: Your internal user ID
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                avatarURL:
+                  type: string
+                  format: uri
+                customFields:
+                  type: object
+                  additionalProperties: true
+            example:
+              apiKey: ""
+              userID: "user_12345"
+              name: "John Doe"
+              email: "john@example.com"
+              avatarURL: "https://example.com/avatar.jpg"
+              customFields:
+                plan: "premium"
+                signupDate: "2024-01-01"
+      responses:
+        '200':
+          description: User created or updated
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439031"
+
+  /users/retrieve:
+    post:
+      tags:
+        - Users
+      summary: Get a user
+      description: Retrieves a user by ID, userID, or email (in priority order).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+                id:
+                  $ref: '#/components/schemas/ObjectId'
+                userID:
+                  type: string
+                email:
+                  type: string
+                  format: email
+            example:
+              apiKey: ""
+              email: "john@example.com"
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439031"
+                userID: "user_12345"
+                name: "John Doe"
+                email: "john@example.com"
+                avatarURL: "https://example.com/avatar.jpg"
+                isAdmin: false
+                created: "2024-01-10T08:00:00.000Z"
+                lastActivity: "2024-01-28T15:30:00.000Z"
+
+  # ==================== VOTES ====================
+  /votes/create:
+    post:
+      tags:
+        - Votes
+      summary: Create a vote
+      description: Adds a vote to a post from a user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - postID
+                - voterID
+              properties:
+                apiKey:
+                  type: string
+                postID:
+                  $ref: '#/components/schemas/ObjectId'
+                voterID:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              postID: "507f1f77bcf86cd799439021"
+              voterID: "507f1f77bcf86cd799439031"
+      responses:
+        '201':
+          description: Vote created
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439061"
+        '409':
+          description: User has already voted
+          content:
+            application/json:
+              example:
+                error: "user has already voted on this post"
+
+  /votes/delete:
+    post:
+      tags:
+        - Votes
+      summary: Remove a vote
+      description: Removes a user's vote from a post.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - postID
+                - voterID
+              properties:
+                apiKey:
+                  type: string
+                postID:
+                  $ref: '#/components/schemas/ObjectId'
+                voterID:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              postID: "507f1f77bcf86cd799439021"
+              voterID: "507f1f77bcf86cd799439031"
+      responses:
+        '200':
+          description: Vote removed
+          content:
+            application/json:
+              example:
+                success: true
+
+  # ==================== COMMENTS ====================
+  /comments/create:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment
+      description: Adds a comment to a post.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - postID
+                - authorID
+                - value
+              properties:
+                apiKey:
+                  type: string
+                postID:
+                  $ref: '#/components/schemas/ObjectId'
+                authorID:
+                  $ref: '#/components/schemas/ObjectId'
+                value:
+                  type: string
+                  minLength: 1
+                  maxLength: 10000
+                parentID:
+                  $ref: '#/components/schemas/ObjectId'
+                  description: ID of parent comment for replies
+                internal:
+                  type: boolean
+                  default: false
+                  description: Internal comments are only visible to admins
+            example:
+              apiKey: ""
+              postID: "507f1f77bcf86cd799439021"
+              authorID: "507f1f77bcf86cd799439031"
+              value: "Great idea! This would be really helpful for our team."
+              internal: false
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439071"
+
+  /comments/list:
+    post:
+      tags:
+        - Comments
+      summary: List comments
+      description: Returns comments filtered by post, board, or author.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+                postID:
+                  $ref: '#/components/schemas/ObjectId'
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+                authorID:
+                  $ref: '#/components/schemas/ObjectId'
+                limit:
+                  type: integer
+                  default: 10
+                skip:
+                  type: integer
+                  default: 0
+            example:
+              apiKey: ""
+              postID: "507f1f77bcf86cd799439021"
+              limit: 20
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              example:
+                comments:
+                  - id: "507f1f77bcf86cd799439071"
+                    value: "Great idea! This would be really helpful."
+                    internal: false
+                    author:
+                      id: "507f1f77bcf86cd799439031"
+                      name: "John Doe"
+                    created: "2024-01-22T11:00:00.000Z"
+                hasMore: false
+
+  # ==================== CATEGORIES ====================
+  /categories/list:
+    post:
+      tags:
+        - Categories
+      summary: List categories for a board
+      description: Returns all categories in a board.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - boardID
+              properties:
+                apiKey:
+                  type: string
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              boardID: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              example:
+                categories:
+                  - id: "507f1f77bcf86cd799439041"
+                    name: "UI/UX"
+                    postCount: 15
+                  - id: "507f1f77bcf86cd799439042"
+                    name: "Performance"
+                    postCount: 8
+
+  /categories/create:
+    post:
+      tags:
+        - Categories
+      summary: Create a category
+      description: Creates a new category in a board.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - boardID
+                - name
+              properties:
+                apiKey:
+                  type: string
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+            example:
+              apiKey: ""
+              boardID: "507f1f77bcf86cd799439011"
+              name: "UI/UX"
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439041"
+
+  # ==================== TAGS ====================
+  /tags/list:
+    post:
+      tags:
+        - Tags
+      summary: List tags for a board
+      description: Returns all tags in a board.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - boardID
+              properties:
+                apiKey:
+                  type: string
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+            example:
+              apiKey: ""
+              boardID: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              example:
+                tags:
+                  - id: "507f1f77bcf86cd799439051"
+                    name: "high-priority"
+                    postCount: 8
+                  - id: "507f1f77bcf86cd799439052"
+                    name: "bug"
+                    postCount: 12
+
+  /tags/create:
+    post:
+      tags:
+        - Tags
+      summary: Create a tag
+      description: Creates a new tag in a board.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - boardID
+                - name
+              properties:
+                apiKey:
+                  type: string
+                boardID:
+                  $ref: '#/components/schemas/ObjectId'
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+            example:
+              apiKey: ""
+              boardID: "507f1f77bcf86cd799439011"
+              name: "high-priority"
+      responses:
+        '201':
+          description: Tag created
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439051"
+
+  # ==================== CHANGELOG ====================
+  /entries/list:
+    post:
+      tags:
+        - Changelog
+      summary: List changelog entries
+      description: Returns changelog entries with optional filtering.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+                labelIDs:
+                  type: array
+                  items:
+                    type: string
+                type:
+                  type: string
+                  enum: [new, improved, fixed]
+                published:
+                  type: boolean
+                limit:
+                  type: integer
+                  default: 10
+                skip:
+                  type: integer
+                  default: 0
+            example:
+              apiKey: ""
+              limit: 10
+      responses:
+        '200':
+          description: List of changelog entries
+          content:
+            application/json:
+              example:
+                entries:
+                  - id: "507f1f77bcf86cd799439081"
+                    title: "New Feature: Dark Mode"
+                    details: "We've added dark mode support..."
+                    types: ["new"]
+                    labels: ["feature", "ui"]
+                    publishedAt: "2024-01-28T12:00:00.000Z"
+                hasMore: false
+
+  /entries/create:
+    post:
+      tags:
+        - Changelog
+      summary: Create a changelog entry
+      description: Creates a new changelog entry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - title
+              properties:
+                apiKey:
+                  type: string
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                details:
+                  type: string
+                  maxLength: 100000
+                labels:
+                  type: array
+                  items:
+                    type: string
+                types:
+                  type: array
+                  items:
+                    type: string
+                    enum: [new, improved, fixed]
+                postIDs:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ObjectId'
+                  description: Link changelog to related posts
+                notify:
+                  type: boolean
+                  default: false
+            example:
+              apiKey: ""
+              title: "New Feature: Dark Mode"
+              details: "## What's New\n\nWe've added dark mode support to help reduce eye strain."
+              types: ["new"]
+              labels: ["feature", "ui"]
+              notify: true
+      responses:
+        '201':
+          description: Changelog entry created
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439081"
+
+  # ==================== COMPANIES ====================
+  /companies/create:
+    post:
+      tags:
+        - Companies
+      summary: Create a new company
+      description: Creates a new company account. This is the initial setup endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: Company name
+                subdomain:
+                  type: string
+                  description: Optional subdomain for the company
+            example:
+              name: "Acme Inc."
+              subdomain: "acme"
+      responses:
+        '201':
+          description: Company created with API key
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439001"
+                apiKey: ""
+
+  /companies/retrieve:
+    post:
+      tags:
+        - Companies
+      summary: Get company info
+      description: Returns information about the authenticated company.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+            example:
+              apiKey: ""
+      responses:
+        '200':
+          description: Company details
+          content:
+            application/json:
+              example:
+                id: "507f1f77bcf86cd799439001"
+                name: "Acme Inc."
+                subdomain: "acme"
+                created: "2024-01-01T00:00:00.000Z"
+
+  # ==================== AUTH ====================
+  /auth/google:
+    get:
+      tags:
+        - Auth
+      summary: Initiate Google OAuth
+      description: Redirects to Google for authentication.
+      parameters:
+        - name: companyId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Company ID to associate user with
+        - name: redirect
+          in: query
+          schema:
+            type: string
+          description: URL to redirect after auth
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      description: Get a new access token using a refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+            example:
+              refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: New tokens
+          content:
+            application/json:
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+  /auth/verify:
+    post:
+      tags:
+        - Auth
+      summary: Verify a token
+      description: Verifies a JWT token and returns user info if valid.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+            example:
+              token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token verification result
+          content:
+            application/json:
+              examples:
+                valid:
+                  value:
+                    valid: true
+                    user:
+                      id: "507f1f77bcf86cd799439031"
+                      name: "John Doe"
+                      email: "john@example.com"
+                invalid:
+                  value:
+                    valid: false
+                    error: "invalid or expired token"
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Email/password login
+      description: Authenticate a user with email and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                companyId:
+                  $ref: '#/components/schemas/ObjectId'
+                  description: Optional company ID (uses demo company if not provided)
+            example:
+              email: "admin@demo.com"
+              password: "admin123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  id: "507f1f77bcf86cd799439031"
+                  name: "Admin User"
+                  email: "admin@demo.com"
+                  isAdmin: true
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              example:
+                error: "invalid email or password"
+
+  /auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: Email/password signup
+      description: Register a new user with email and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                name:
+                  type: string
+                companyId:
+                  $ref: '#/components/schemas/ObjectId'
+                  description: Optional company ID (uses demo company if not provided)
+            example:
+              email: "newuser@example.com"
+              password: "securepassword123"
+              name: "New User"
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  id: "507f1f77bcf86cd799439032"
+                  name: "New User"
+                  email: "newuser@example.com"
+                  isAdmin: false
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              example:
+                error: "user with this email already exists"
