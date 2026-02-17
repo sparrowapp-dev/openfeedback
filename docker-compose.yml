@@ -18,47 +18,47 @@ services:
       timeout: 5s
       retries: 5
 
-#   # API Server
-#   api:
-#     build:
-#       context: .
-#       dockerfile: apps/api/Dockerfile
-#     container_name: openfeedback-api
-#     restart: unless-stopped
-#     ports:
-#       - "${API_PORT:-3000}:3000"
-#     environment:
-#       NODE_ENV: production
-#       PORT: 3000
-#       MONGODB_URI: mongodb://${MONGO_USER:-openfeedback}:${MONGO_PASSWORD:-changeme}@mongo:27017/openfeedback?authSource=admin
-#       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
-#       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-#       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-#       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-#       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/v1/auth/google/callback}
-#       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-#     depends_on:
-#       mongo:
-#         condition: service_healthy
-#     healthcheck:
-#       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-#       interval: 30s
-#       timeout: 10s
-#       retries: 3
+  # API Server
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: openfeedback-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: mongodb://${MONGO_USER:-openfeedback}:${MONGO_PASSWORD:-changeme}@mongo:27017/openfeedback?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/v1/auth/google/callback}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-#   # Web Frontend (Production Build)
-#   web:
-#     build:
-#       context: .
-#       dockerfile: apps/web/Dockerfile
-#       args:
-#         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api/v1}
-#     container_name: openfeedback-web
-#     restart: unless-stopped
-#     ports:
-#       - "${WEB_PORT:-5173}:80"
-#     depends_on:
-#       - api
+  # Web Frontend (Production Build)
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api/v1}
+    container_name: openfeedback-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-5173}:80"
+    depends_on:
+      - api
 
 volumes:
   mongo_data:
