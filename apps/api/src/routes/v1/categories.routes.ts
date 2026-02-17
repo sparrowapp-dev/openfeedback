@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, validate, categoryListSchema, categoryCreateSchema } from '../../middlewares/index.js';
+import { flexibleAuth, optionalSubdomainAuth, validate, categoryListSchema, categoryCreateSchema } from '../../middlewares/index.js';
 import { listCategories, retrieveCategory, createCategory, deleteCategory } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware first
+router.use(optionalSubdomainAuth);
 
 // All category routes require authentication
 router.use(flexibleAuth);

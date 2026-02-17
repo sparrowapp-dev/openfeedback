@@ -3,7 +3,7 @@ import passport from 'passport';
 import bcrypt from 'bcryptjs';
 import { User, Company } from '../../models/index.js';
 import { generateTokens, verifyToken } from '../../services/auth.service.js';
-import { asyncHandler, AppError, apiKeyAuth } from '../../middlewares/index.js';
+import { asyncHandler, AppError, apiKeyAuth, optionalSubdomainAuth } from '../../middlewares/index.js';
 import { config } from '../../config/index.js';
 
 const router = Router();
@@ -141,26 +141,23 @@ router.get('/failure', (req: Request, res: Response) => {
 /**
  * POST /auth/login
  * Email/password login
+ * Extracts company from subdomain (Host header) or request body/query
  */
 router.post(
   '/login',
+  optionalSubdomainAuth,
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { email, password, companyId } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       throw new AppError('email and password are required', 400);
     }
 
-    // Find company - use demo company if not specified
-    let company;
-    if (companyId) {
-      company = await Company.findById(companyId);
-    } else {
-      company = await Company.findOne({ subdomain: 'demo' });
-    }
+    // Company should be extracted from subdomain middleware
+    const company = req.company;
 
     if (!company) {
-      throw new AppError('company not found', 404);
+      throw new AppError('company not found. please check your subdomain', 404);
     }
 
     // Find user by email
@@ -204,11 +201,13 @@ router.post(
 /**
  * POST /auth/signup
  * Email/password signup
+ * Extracts company from subdomain (Host header) or request body/query
  */
 router.post(
   '/signup',
+  optionalSubdomainAuth,
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { email, password, name, companyId } = req.body;
+    const { email, password, name } = req.body;
 
     if (!email || !password || !name) {
       throw new AppError('email, password, and name are required', 400);
@@ -218,16 +217,11 @@ router.post(
       throw new AppError('password must be at least 6 characters', 400);
     }
 
-    // Find company - use demo company if not specified
-    let company;
-    if (companyId) {
-      company = await Company.findById(companyId);
-    } else {
-      company = await Company.findOne({ subdomain: 'demo' });
-    }
+    // Company should be extracted from subdomain middleware
+    const company = req.company;
 
     if (!company) {
-      throw new AppError('company not found', 404);
+      throw new AppError('company not found. please check your subdomain', 404);
     }
 
     // Check if user already exists
@@ -251,10 +245,6 @@ router.post(
         passwordHash,
       },
     });
-
-    // Get company API key
-    const companyWithKey = await Company.findById(company._id).select('+apiKey');
-    const apiKey = companyWithKey?.apiKey;
 
     // Generate tokens
     const tokens = generateTokens(user);
@@ -373,6 +363,71 @@ router.post(
         error: 'invalid or expired token',
       });
     }
+  })
+);
+
+/**
+ * POST /auth/create_admin
+ * Create an admin user for a company
+ * Requires API key authentication
+ * Body: { email, password, name }
+ */
+router.post(
+  '/create_admin',
+  apiKeyAuth,
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { email, password, name } = req.body;
+
+    if (!email || !password || !name) {
+      throw new AppError('email, password, and name are required', 400);
+    }
+
+    if (password.length < 6) {
+      throw new AppError('password must be at least 6 characters', 400);
+    }
+
+    const company = req.company!;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      companyID: company._id, 
+      email: email.toLowerCase() 
+    });
+    
+    if (existingUser) {
+      throw new AppError('user with this email already exists', 409);
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create admin user
+    const user = await User.create({
+      companyID: company._id,
+      userID: `admin_${Date.now()}`,
+      name,
+      email: email.toLowerCase(),
+      isAdmin: true,
+      isShadow: false,
+      customFields: {
+        passwordHash,
+      },
+    });
+
+    // Generate tokens
+    const tokens = generateTokens(user);
+
+    res.status(201).json({
+      ...tokens,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        avatarURL: user.avatarURL,
+        companyId: company._id.toString(),
+      },
+    });
   })
 );
 

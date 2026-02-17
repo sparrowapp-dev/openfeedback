@@ -17,7 +17,7 @@ export function createApp(): express.Application {
   
   // CORS configuration
   app.use(cors({
-    origin: [config.frontendUrl, 'http://localhost:5173', 'http://localhost:3000'],
+    origin: [config.frontendUrl, 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:1420'],
     credentials: true,
   }));
 

@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, optionalApiKeyAuth, validate, commentCreateSchema, commentListSchema, commentDeleteSchema } from '../../middlewares/index.js';
+import { optionalSubdomainAuth, flexibleAuth, optionalApiKeyAuth, validate, commentCreateSchema, commentListSchema, commentDeleteSchema } from '../../middlewares/index.js';
 import { createComment, retrieveComment, listComments, deleteComment } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware to all comment routes
+router.use(optionalSubdomainAuth);
 
 // POST /comments/create - Create a comment (public for guest commenting)
 router.post('/create', optionalApiKeyAuth, validate(commentCreateSchema), createComment);

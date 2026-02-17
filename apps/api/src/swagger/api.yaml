@@ -1170,3 +1170,64 @@ paths:
             application/json:
               example:
                 error: "user with this email already exists"
+
+  /auth/create_admin:
+    post:
+      tags:
+        - Auth
+      summary: Create admin user
+      description: Create an admin user for a company. Requires API key authentication.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+                - email
+                - password
+                - name
+              properties:
+                apiKey:
+                  type: string
+                  description: Company API key
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                name:
+                  type: string
+            example:
+              apiKey: "your-company-api-key"
+              email: "admin@company.com"
+              password: "adminpassword123"
+              name: "Admin User"
+      responses:
+        '201':
+          description: Admin user created successfully
+          content:
+            application/json:
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  id: "507f1f77bcf86cd799439033"
+                  name: "Admin User"
+                  email: "admin@company.com"
+                  isAdmin: true
+                  companyId: "507f1f77bcf86cd799439021"
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              example:
+                error: "invalid api key"
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              example:
+                error: "user with this email already exists"

@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, optionalApiKeyAuth, validate, userCreateOrUpdateSchema, userRetrieveSchema, userDeleteSchema } from '../../middlewares/index.js';
+import { optionalSubdomainAuth, flexibleAuth, optionalApiKeyAuth, validate, userCreateOrUpdateSchema, userRetrieveSchema, userDeleteSchema } from '../../middlewares/index.js';
 import { createOrUpdateUser, retrieveUser, listUsers, deleteUser } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware to all user routes
+router.use(optionalSubdomainAuth);
 
 // POST /users/create_or_update - Create or update a user (public for guest users)
 router.post('/create_or_update', optionalApiKeyAuth, validate(userCreateOrUpdateSchema), createOrUpdateUser);

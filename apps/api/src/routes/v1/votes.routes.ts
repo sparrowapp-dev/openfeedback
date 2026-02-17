@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, validate, voteCreateSchema, voteDeleteSchema, voteListSchema } from '../../middlewares/index.js';
+import { optionalSubdomainAuth, flexibleAuth, validate, voteCreateSchema, voteDeleteSchema, voteListSchema } from '../../middlewares/index.js';
 import { createVote, retrieveVote, listVotes, deleteVote } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware to all vote routes
+router.use(optionalSubdomainAuth);
 
 // POST /votes/create - Create a vote (public for guest voting)
 router.post('/create', flexibleAuth, validate(voteCreateSchema), createVote);

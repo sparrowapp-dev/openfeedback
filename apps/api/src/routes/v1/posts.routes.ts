@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { flexibleAuth, optionalApiKeyAuth, validate, postListSchema, postRetrieveSchema, postCreateSchema, postUpdateSchema, postChangeStatusSchema, postAddTagSchema } from '../../middlewares/index.js';
+import { flexibleAuth, optionalApiKeyAuth, optionalSubdomainAuth, validate, postListSchema, postRetrieveSchema, postCreateSchema, postUpdateSchema, postChangeStatusSchema, postAddTagSchema } from '../../middlewares/index.js';
 import { 
   listPosts, 
   retrievePost, 
@@ -12,6 +12,9 @@ import {
 } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware to all post routes
+router.use(optionalSubdomainAuth);
 
 // POST /posts/list - List posts (public)
 router.post('/list', optionalApiKeyAuth, validate(postListSchema), listPosts);

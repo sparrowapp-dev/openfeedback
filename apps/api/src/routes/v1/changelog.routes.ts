@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, validate, changelogListSchema, changelogCreateSchema } from '../../middlewares/index.js';
+import { optionalSubdomainAuth, flexibleAuth, validate, changelogListSchema, changelogCreateSchema } from '../../middlewares/index.js';
 import { listChangelog, retrieveChangelog, createChangelog, deleteChangelog } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware first
+router.use(optionalSubdomainAuth);
 
 // All changelog routes require authentication
 router.use(flexibleAuth);

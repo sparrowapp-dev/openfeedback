@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth } from '../../middlewares/index.js';
+import { optionalSubdomainAuth, flexibleAuth } from '../../middlewares/index.js';
 import { createCompany, retrieveCompany, regenerateApiKey } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware to all company routes
+router.use(optionalSubdomainAuth);
 
 // POST /companies/create - Create a new company (no auth required - setup endpoint)
 router.post('/create', createCompany);

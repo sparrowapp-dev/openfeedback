@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, optionalApiKeyAuth, validate, boardListSchema, boardRetrieveSchema, boardCreateSchema } from '../../middlewares/index.js';
+import { flexibleAuth, optionalApiKeyAuth, optionalSubdomainAuth, validate, boardListSchema, boardRetrieveSchema, boardCreateSchema } from '../../middlewares/index.js';
 import { listBoards, retrieveBoard, createBoard, deleteBoard } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware to all board routes
+router.use(optionalSubdomainAuth);
 
 // POST /boards/list - List all boards (public)
 router.post('/list', optionalApiKeyAuth, validate(boardListSchema), listBoards);

@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { flexibleAuth, validate, tagListSchema, tagCreateSchema } from '../../middlewares/index.js';
+import { optionalSubdomainAuth, flexibleAuth, validate, tagListSchema, tagCreateSchema } from '../../middlewares/index.js';
 import { listTags, retrieveTag, createTag, deleteTag } from '../../controllers/index.js';
 
 const router = Router();
+
+// Apply subdomain middleware first
+router.use(optionalSubdomainAuth);
 
 // All tag routes require authentication
 router.use(flexibleAuth);
