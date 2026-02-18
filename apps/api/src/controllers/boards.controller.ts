@@ -1,19 +1,22 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Board, Post, Company } from '../models/index.js';
+import { Board, Company } from '../models/index.js';
 import { asyncHandler, AppError } from '../middlewares/index.js';
 
-/**
- * POST /boards/list
- * List all boards for the company
- * Canny-compatible response: { boards: [...] }
- */
 export const listBoards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  // Get companyID from auth or find default/demo company for guest users
+  // Get companyID from authenticated user first, then subdomain/context
   let companyID: mongoose.Types.ObjectId;
-  if (req.company) {
+
+  // 1. Authenticated user's company
+  if ((req as any).user) {
+    companyID = (req as any).user.companyID;
+  }
+  // 2. Company from subdomain/API key context
+  else if (req.company) {
     companyID = req.company._id;
-  } else {
+  }
+  // 3. Fallback to demo company (or first found company)
+  else {
     const defaultCompany = await Company.findOne({ subdomain: 'demo' }) || await Company.findOne();
     if (!defaultCompany) {
       throw new AppError('no companies found', 404);
@@ -43,6 +46,7 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
       },
     },
     { $sort: { created: -1 } },
+    { $limit: 1 },
   ]);
 
   // Transform to Canny format
@@ -56,8 +60,7 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
     token: board.token,
     url: board.url,
   }));
-
-  res.json({ boards: formattedBoards });
+  res.json({ boards: formattedBoards[0] });
 });
 
 /**

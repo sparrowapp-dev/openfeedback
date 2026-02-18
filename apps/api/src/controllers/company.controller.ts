@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { Company } from '../models/index.js';
+import bcrypt from 'bcryptjs';
+import { Company, User, Board, Category } from '../models/index.js';
 import { asyncHandler, AppError } from '../middlewares/index.js';
 
 /**
@@ -8,7 +9,12 @@ import { asyncHandler, AppError } from '../middlewares/index.js';
  * This is NOT part of the Canny API - it's for initial setup
  */
 export const createCompany = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { name, domainWhitelist, subdomain } = req.body;
+  const { name, domainWhitelist, subdomain, adminName, adminEmail, adminPassword } = req.body;
+
+  // Validate required fields for full setup
+  if (!adminEmail || !adminPassword) {
+    throw new AppError('admin email and password are required for initial setup', 400);
+  }
 
   // Generate API key
   const { plain: apiKeyPlain, hash: apiKeyHash } = Company.generateApiKey();
@@ -22,6 +28,45 @@ export const createCompany = asyncHandler(async (req: Request, res: Response): P
     subdomain,
   });
 
+  // Create default admin user
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+  const adminUser = await User.create({
+    companyID: company._id,
+    userID: 'admin_' + Date.now(), // Internal ID
+    name: adminName || 'Admin',
+    email: adminEmail,
+    isAdmin: true,
+    isShadow: false,
+    customFields: {
+      passwordHash,
+    },
+    created: new Date(),
+    lastActivity: new Date(),
+  });
+
+  // Create default board
+  const board = await Board.create({
+    companyID: company._id,
+    ownerID: adminUser._id,
+    name: 'Feature Requests',
+    url: 'feature-requests',
+    isPrivate: false,
+    privateComments: false,
+  });
+
+  // Create default categories
+  const defaultCategories = ['Feature Request', 'UI Improvement', 'Bug',];
+  await Category.insertMany(
+    defaultCategories.map(catName => ({
+      companyID: company._id,
+      boardID: board._id,
+      createdByID: adminUser._id,
+      name: catName,
+      postCount: 0,
+      created: new Date(),
+    }))
+  );
+
   // Return company with plain API key (only time it's visible)
   res.json({
     id: company._id.toString(),
@@ -30,6 +75,10 @@ export const createCompany = asyncHandler(async (req: Request, res: Response): P
     domainWhitelist: company.domainWhitelist,
     subdomain: company.subdomain,
     created: company.created.toISOString(),
+    admin: {
+      id: adminUser._id,
+      email: adminUser.email,
+    }
   });
 });
 

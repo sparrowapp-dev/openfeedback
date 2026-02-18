@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useBoardsStore, CreateBoardData } from '../../stores/boardsStore';
 import { useAuthStore } from '../../stores/authStore';
 import { Button, Card, CardTitle, Input, Modal, Spinner, Badge } from '../../components/ui';
+import { IBoard } from '@/index';
 import {
   PlusIcon,
   PencilIcon,
@@ -13,8 +14,8 @@ import toast from 'react-hot-toast';
 
 export function AdminBoardsPage() {
   const { user } = useAuthStore();
-  const { boards, isLoading, fetchBoards, createBoard, updateBoard, deleteBoard } = useBoardsStore();
-  
+  const { isLoading, fetchBoards, createBoard, updateBoard, deleteBoard, boards: rawBoards } = useBoardsStore();
+  const boards = Array.isArray(rawBoards) ? rawBoards : [rawBoards].filter(Boolean);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingBoard, setEditingBoard] = useState<{ id: string; name: string; isPrivate: boolean } | null>(null);
   const [newBoard, setNewBoard] = useState<CreateBoardData>({ name: '', isPrivate: false });

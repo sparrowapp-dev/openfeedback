@@ -208,8 +208,9 @@ function App() {
         <div className="of-mt-4 of-space-y-4">
           <Input
             label="Company Name"
-            defaultValue="My Company"
+            defaultValue={user?.companyName || "My Company"}
             placeholder="Enter company name"
+            readOnly
           />
           <Input
             label="Support Email"

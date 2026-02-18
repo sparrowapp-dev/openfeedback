@@ -88,10 +88,13 @@ export function FeedbackBoard({
     setCategoryFilter,
     setSortBy,
     setSearchQuery,
-    boards,
+    boards: rawBoards,
   } = useFeedbackStore();
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
+
+  // Ensure boards is always an array
+  const boards = Array.isArray(rawBoards) ? rawBoards : [rawBoards].filter(Boolean);
 
   // Set board on mount
   useEffect(() => {

@@ -112,7 +112,7 @@ async function apiRequest<T>(endpoint: string, body: object = {}): Promise<T> {
   
   // Check if user is authenticated (has JWT token)
   const authState = useAuthStore.getState();
-  const { accessToken } = authState;
+  const { accessToken, user } = authState;
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -121,6 +121,11 @@ async function apiRequest<T>(endpoint: string, body: object = {}): Promise<T> {
   // If user has JWT token, use it
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  
+  // If user has a subdomain, add it to headers (Fix for localhost multi-tenancy)
+  if (user?.subdomain) {
+    headers['x-company-subdomain'] = user.subdomain;
   }
   
   // Build request body
