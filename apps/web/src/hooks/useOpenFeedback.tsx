@@ -60,7 +60,10 @@ export function OpenFeedbackProvider({
   defaultBoardId,
 }: OpenFeedbackProviderProps) {
   const shadowUser = useShadowUser();
-  const { fetchBoards, setCurrentBoard, boards } = useFeedbackStore();
+  const { fetchBoards, setCurrentBoard, boards: rawBoards } = useFeedbackStore();
+  
+  // Ensure boards is always an array
+  const boards = Array.isArray(rawBoards) ? rawBoards : [rawBoards].filter(Boolean);
 
   // Initialize API client
   useEffect(() => {

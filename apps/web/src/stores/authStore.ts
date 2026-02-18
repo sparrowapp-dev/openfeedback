@@ -9,6 +9,8 @@ export interface AuthUser {
   avatarURL?: string | null;
   isAdmin: boolean;
   companyId: string;
+  companyName?: string;
+  subdomain?: string;
 }
 
 interface AuthState {
@@ -78,6 +80,8 @@ export const useAuthStore = create<AuthState>()(
             avatarURL: data.user.avatarURL,
             isAdmin: data.user.isAdmin,
             companyId: data.user.companyId,
+            companyName: data.user.companyName,
+            subdomain: data.user.subdomain,
           };
 
           set({
@@ -118,6 +122,8 @@ export const useAuthStore = create<AuthState>()(
             avatarURL: result.user.avatarURL,
             isAdmin: result.user.isAdmin,
             companyId: result.user.companyId,
+            companyName: result.user.companyName,
+            subdomain: result.user.subdomain,
           };
 
           set({
@@ -172,6 +178,8 @@ export const useAuthStore = create<AuthState>()(
             avatarURL: data.user.avatarURL,
             isAdmin: data.user.isAdmin,
             companyId: data.user.companyId,
+            companyName: data.user.companyName,
+            subdomain: data.user.subdomain,
           };
 
           set({ user, isAuthenticated: true });

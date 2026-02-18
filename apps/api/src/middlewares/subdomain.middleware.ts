@@ -28,15 +28,14 @@ export async function subdomainAuth(
       }
     }
 
-    // Check if subdomain is provided in body or query (for local dev/testing)
-    const requestSubdomain = req.body?.subdomain || req.query?.subdomain;
+    // Check if subdomain is provided in body, query, or custom header (for local dev/testing)
+    const requestSubdomain = req.body?.subdomain || req.query?.subdomain || req.headers['x-company-subdomain'];
     if (requestSubdomain && typeof requestSubdomain === 'string') {
       subdomain = requestSubdomain;
     }
 
     // Find company by subdomain
     const company = await Company.findOne({ subdomain });
-
     if (!company) {
       throw new AppError(`company not found for subdomain: ${subdomain}`, 404);
     }
@@ -63,11 +62,12 @@ export async function optionalSubdomainAuth(
     if (host && !host.startsWith('localhost') && !host.match(/^\d+\.\d+\.\d+\.\d+/)) {
       const parts = host.split('.');
       if (parts.length >= 3) {
-        subdomain = parts[0];
+        subdomain = parts[1];
       }
     }
 
-    const requestSubdomain = req.body?.subdomain || req.query?.subdomain;
+    const requestSubdomain = req.body?.subdomain || req.query?.subdomain || req.headers['x-company-subdomain'];
+    //const requestSubdomain = 'sparrow'
     if (requestSubdomain && typeof requestSubdomain === 'string') {
       subdomain = requestSubdomain;
     }

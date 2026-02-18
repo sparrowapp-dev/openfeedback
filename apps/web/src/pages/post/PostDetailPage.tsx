@@ -19,7 +19,10 @@ export function PostDetailPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const { ensureUser, isGuest, isUserLoading } = useOpenFeedback();
-  const { currentPost, isLoadingPost, userVotes, boards, fetchPost, fetchUserVotes, votePost, unvotePost } = useFeedbackStore();
+  const { currentPost, isLoadingPost, userVotes, boards: rawBoards, fetchPost, fetchUserVotes, votePost, unvotePost } = useFeedbackStore();
+  
+  // Ensure boards is always an array
+  const boards = Array.isArray(rawBoards) ? rawBoards : [rawBoards].filter(Boolean);
   
   const [comments, setComments] = useState<IComment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
