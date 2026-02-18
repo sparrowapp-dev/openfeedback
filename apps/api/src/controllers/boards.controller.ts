@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Board, Company } from '../models/index.js';
+import { Board, Company, Post } from '../models/index.js';
 import { asyncHandler, AppError } from '../middlewares/index.js';
 
 export const listBoards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
