@@ -45,8 +45,8 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
         posts: 0, // Remove posts array from output
       },
     },
-    { $sort: { created: -1 } },
-    { $limit: 1 },
+    //{ $sort: { created: -1 } },
+    //{ $limit: 1 },
   ]);
 
   // Transform to Canny format
@@ -60,7 +60,7 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
     token: board.token,
     url: board.url,
   }));
-  res.json({ boards: formattedBoards[0] });
+  res.json({ boards: formattedBoards });
 });
 
 /**
