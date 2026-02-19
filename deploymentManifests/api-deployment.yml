@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openfeedback-api
+  namespace: canny
+  labels:
+    app: openfeedback-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openfeedback-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: openfeedback-api
+    spec:
+      containers:
+      - name: api
+        image: techdomeacr.azurecr.io/openfeedback-api:_API_VERSION_
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: openfeedback-api-secrets
+              key: MONGODB_URI
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: openfeedback-api-secrets
+              key: JWT_SECRET
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: openfeedback-api-secrets
+              key: GOOGLE_CLIENT_ID
+              optional: true
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: openfeedback-api-secrets
+              key: GOOGLE_CLIENT_SECRET
+              optional: true
+        - name: PORT
+          value: "3000"
+        - name: FRONTEND_URL
+          value: "https://openfeedback.sparrowapp.dev"
+        - name: NODE_ENV
+          value: "development"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      imagePullSecrets:
+      - name: acr-pull-secret
