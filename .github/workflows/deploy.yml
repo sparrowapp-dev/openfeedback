@@ -96,7 +96,7 @@ jobs:
         images: |
           ${{ env.REGISTRY }}/openfeedback-api:${{ steps.versions.outputs.api_version }}
           ${{ env.REGISTRY }}/openfeedback-web:${{ steps.versions.outputs.web_version }}
-        imagepullsecrets: acr-pull-secret
+
 
     - name:  Verify
       run: |
