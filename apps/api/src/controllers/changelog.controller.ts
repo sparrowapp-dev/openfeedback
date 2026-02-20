@@ -40,7 +40,20 @@ async function formatChangelog(entry: any) {
  * List changelog entries
  */
 export const listChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const companyID = req.company!._id;
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Changelog is usually public per company subdomain
+    // If no context, check if we can infer from labelIDs (unreliable)
+    // For now, require context
+    throw new AppError('company context required', 400);
+  }
+  
   const { skip, limit } = parsePaginationParams(req.body);
   const { labelIDs, type, published } = req.body;
 
@@ -76,10 +89,25 @@ export const listChangelog = asyncHandler(async (req: Request, res: Response): P
  */
 export const retrieveChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError('invalid entry id', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback
+    const entry = await Changelog.findById(id);
+    if (!entry) {
+      throw new AppError('entry not found', 404);
+    }
+    companyID = entry.companyID;
   }
 
   const entry = await Changelog.findOne({ _id: id, companyID });
@@ -97,7 +125,17 @@ export const retrieveChangelog = asyncHandler(async (req: Request, res: Response
  */
 export const createChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { title, details, labels, types, postIDs, notify } = req.body;
-  const companyID = req.company!._id;
+  
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    throw new AppError('company context required to create changelog', 401);
+  }
 
   // Validate post IDs if provided
   let validPostIDs: mongoose.Types.ObjectId[] = [];
@@ -147,10 +185,25 @@ export const createChangelog = asyncHandler(async (req: Request, res: Response):
  */
 export const deleteChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError('invalid entry id', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback
+    const entry = await Changelog.findById(id);
+    if (!entry) {
+        throw new AppError('entry not found', 404);
+    }
+    companyID = entry.companyID;
   }
 
   const entry = await Changelog.findOneAndDelete({ _id: id, companyID });

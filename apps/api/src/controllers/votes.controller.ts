@@ -84,10 +84,25 @@ export const createVote = asyncHandler(async (req: Request, res: Response): Prom
  */
 export const retrieveVote = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError('invalid vote id', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback
+    const vote = await Vote.findById(id);
+    if (!vote) {
+      throw new AppError('vote not found', 404);
+    }
+    companyID = vote.companyID;
   }
 
   const vote = await Vote.findOne({ _id: id, companyID });

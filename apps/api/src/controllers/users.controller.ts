@@ -64,7 +64,25 @@ export const createOrUpdateUser = asyncHandler(async (req: Request, res: Respons
  */
 export const retrieveUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id, userID, email } = req.body;
-  const companyID = req.company!._id;
+  
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // If searching by internal ID, we can find the user first
+    if (id && mongoose.Types.ObjectId.isValid(id)) {
+        const found = await User.findById(id);
+        if (!found)    throw new AppError('user not found', 404);
+        companyID = found.companyID;
+    } else {
+        // Without ID, we can't search without company context
+        throw new AppError('company context required to retrieve user by external ID/email', 400); 
+    }
+  }
 
   const user = await User.findByIdentifier(companyID, { id, userID, email });
 
@@ -80,7 +98,17 @@ export const retrieveUser = asyncHandler(async (req: Request, res: Response): Pr
  * List users with cursor-based pagination
  */
 export const listUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const companyID = req.company!._id;
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    throw new AppError('company context required to list users', 400);
+  }
+
   const { cursor, limit } = parseCursorPaginationParams(req.body);
 
   const query = User.find({ companyID });
@@ -99,10 +127,25 @@ export const listUsers = asyncHandler(async (req: Request, res: Response): Promi
  */
 export const deleteUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError('invalid user id', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+  
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback: use user's company
+    const user = await User.findById(id);
+    if (!user) {
+      throw new AppError('user not found', 404);
+    }
+    companyID = user.companyID;
   }
 
   const user = await User.findOneAndDelete({ _id: id, companyID });
