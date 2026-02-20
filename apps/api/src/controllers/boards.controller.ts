@@ -106,7 +106,18 @@ export const retrieveBoard = asyncHandler(async (req: Request, res: Response): P
  */
 export const createBoard = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { name, isPrivate, privateComments } = req.body;
-  const companyID = req.company!._id;
+  
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+     // For creating a board, we absolutely need authentication or API key context
+     throw new AppError('company context required to create board', 401);
+  }
 
   // Check for duplicate name/url
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

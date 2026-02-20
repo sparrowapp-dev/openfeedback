@@ -244,10 +244,25 @@ export const createPost = asyncHandler(async (req: Request, res: Response): Prom
  */
 export const updatePost = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { postID, title, details, categoryID, ownerID, eta, imageURLs } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(postID)) {
     throw new AppError('invalid postID', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback: try to find post's company
+    const post = await Post.findById(postID);
+    if (!post) {
+      throw new AppError('post not found', 404);
+    }
+    companyID = post.companyID;
   }
 
   const post = await Post.findOne({ _id: postID, companyID });
@@ -298,10 +313,25 @@ export const updatePost = asyncHandler(async (req: Request, res: Response): Prom
  */
 export const changePostStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { postID, changerID, status, commentValue } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(postID)) {
     throw new AppError('invalid postID', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+  
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback: try to find post's company
+    const post = await Post.findById(postID);
+    if (!post) {
+      throw new AppError('post not found', 404);
+    }
+    companyID = post.companyID;
   }
 
   const post = await Post.findOne({ _id: postID, companyID });
@@ -339,10 +369,25 @@ export const changePostStatus = asyncHandler(async (req: Request, res: Response)
  */
 export const deletePost = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.body;
-  const companyID = req.company!._id;
-
+  
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError('invalid post id', 400);
+  }
+
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+  
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback: try to find post's company
+    const post = await Post.findById(id);
+    if (!post) {
+      throw new AppError('post not found', 404);
+    }
+    companyID = post.companyID;
   }
 
   const post = await Post.findOneAndDelete({ _id: id, companyID });
@@ -370,7 +415,22 @@ export const deletePost = asyncHandler(async (req: Request, res: Response): Prom
  */
 export const addTagToPost = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { postID, tagID } = req.body;
-  const companyID = req.company!._id;
+  
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+  
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback: try to find post's company
+    const post = await Post.findById(postID);
+    if (!post) {
+      throw new AppError('post not found', 404);
+    }
+    companyID = post.companyID;
+  }
 
   const post = await Post.findOne({ _id: postID, companyID });
   if (!post) {
@@ -384,7 +444,22 @@ export const addTagToPost = asyncHandler(async (req: Request, res: Response): Pr
 
   // Add tag if not already present
   if (!post.tagIDs.includes(tag._id)) {
-    post.tagIDs.push(tag._id);
+  
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+  
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    // Fallback: try to find post's company
+    const post = await Post.findById(postID);
+    if (!post) {
+      throw new AppError('post not found', 404);
+    }
+    companyID = post.companyID;
+  }
     await post.save();
     await Tag.updateOne({ _id: tag._id }, { $inc: { postCount: 1 } });
   }
