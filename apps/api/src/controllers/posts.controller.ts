@@ -86,7 +86,13 @@ export const listPosts = asyncHandler(async (req: Request, res: Response): Promi
   if (authorID) query.authorID = new mongoose.Types.ObjectId(authorID);
   if (ownerID) query.ownerID = new mongoose.Types.ObjectId(ownerID);
   if (categoryID) query.categoryID = new mongoose.Types.ObjectId(categoryID);
-  if (status) query.status = status;
+  if (status) {
+    if (Array.isArray(status)) {
+      query.status = { $in: status };
+    } else {
+      query.status = status;
+    }
+  }
   if (tagIDs && tagIDs.length > 0) {
     query.tagIDs = { $in: tagIDs.map((id: string) => new mongoose.Types.ObjectId(id)) };
   }
