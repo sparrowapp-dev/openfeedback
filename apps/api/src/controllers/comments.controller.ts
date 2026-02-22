@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Comment, Post, User, Board } from '../models/index.js';
 import { asyncHandler, AppError, sanitizeContent } from '../middlewares/index.js';
 import { skipPaginate, cursorPaginate, parsePaginationParams, parseCursorPaginationParams, notifications } from '../utils/index.js';
+import { uploadFiles } from '../services/index.js';
 
 /**
  * Helper to format a comment for Canny-compatible response
@@ -107,6 +108,126 @@ export const createComment = asyncHandler(async (req: Request, res: Response): P
 
   const formatted = await formatComment(comment);
   res.json(formatted);
+});
+
+/**
+ * POST /comments/upload
+ * Create a new comment with file uploads (multipart/form-data)
+ * Combines image upload and comment creation into a single endpoint
+ */
+export const uploadComment = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  // Extract form fields from multipart request
+  const { postID, value, parentID, authorID, email, internal } = req.body;
+  
+  // Get uploaded files from multer
+  const files = req.files as Express.Multer.File[] | undefined;
+  
+  // Validate required fields
+  if (!value) {
+    throw new AppError('value is required', 400);
+  }
+  
+  if (!postID) {
+    throw new AppError('postID is required', 400);
+  }
+
+  // Validate post exists first (needed to get companyID for guest users)
+  if (!mongoose.Types.ObjectId.isValid(postID)) {
+    throw new AppError('invalid postID', 400);
+  }
+  const post = await Post.findById(postID);
+  if (!post) {
+    throw new AppError('post not found', 404);
+  }
+  const companyID = post.companyID;
+
+  // Determine authorID - either from form data or from email lookup/creation
+  let resolvedAuthorID: mongoose.Types.ObjectId;
+  
+  if (authorID) {
+    if (!mongoose.Types.ObjectId.isValid(authorID)) {
+      throw new AppError('invalid authorID', 400);
+    }
+    const author = await User.findOne({ _id: authorID, companyID });
+    if (!author) {
+      throw new AppError('author not found', 404);
+    }
+    resolvedAuthorID = author._id;
+  } else if (email) {
+    // Try to find user by email or create a guest user
+    let user = await User.findOne({ email, companyID });
+    if (!user) {
+      user = await User.create({
+        companyID,
+        email,
+        name: email.split('@')[0],
+        isAdmin: false,
+      });
+    }
+    resolvedAuthorID = user._id;
+  } else {
+    throw new AppError('authorID or email is required', 400);
+  }
+
+  // Validate parent comment if provided
+  if (parentID) {
+    if (!mongoose.Types.ObjectId.isValid(parentID)) {
+      throw new AppError('invalid parentID', 400);
+    }
+    const parent = await Comment.findOne({ _id: parentID, postID: post._id });
+    if (!parent) {
+      throw new AppError('parent comment not found', 404);
+    }
+  }
+
+  // Upload files to blob storage if any
+  let imageURLs: string[] = [];
+  if (files && files.length > 0) {
+    try {
+      imageURLs = await uploadFiles(files);
+    } catch (err) {
+      console.error('Failed to upload files:', err);
+      throw new AppError('Failed to upload images', 500);
+    }
+  }
+
+  // Sanitize comment content
+  const sanitizedValue = sanitizeContent(value);
+
+  // Create comment
+  const comment = await Comment.create({
+    companyID,
+    postID: post._id,
+    authorID: resolvedAuthorID,
+    value: sanitizedValue,
+    parentID: parentID ? new mongoose.Types.ObjectId(parentID) : undefined,
+    imageURLs,
+    internal: internal === 'true' || internal === true || false,
+  });
+
+  // Increment post comment count
+  await Post.updateOne({ _id: post._id }, { $inc: { commentCount: 1 } });
+
+  // Emit notification
+  notifications.emit('post.commented', {
+    companyID: companyID.toString(),
+    data: {
+      postID: post._id.toString(),
+      commentID: comment._id.toString(),
+      authorID: resolvedAuthorID.toString(),
+    },
+  });
+
+  // Return response in the format expected by the frontend specification
+  res.json({
+    isSuccessful: true,
+    message: 'Comment added successfully',
+    data: {
+      id: comment._id.toString(),
+      imageUrls: imageURLs,
+      comment: await formatComment(comment),
+    },
+  });
 });
 
 /**

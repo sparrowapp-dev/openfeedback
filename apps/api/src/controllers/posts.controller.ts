@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Post, User, Board, Category, Tag, Vote } from '../models/index.js';
 import { asyncHandler, AppError, sanitizeContent } from '../middlewares/index.js';
 import { skipPaginate, parsePaginationParams, notifications } from '../utils/index.js';
+import { uploadFiles } from '../services/index.js';
 import type { PostStatus } from '../models/Post.js';
 
 /**
@@ -86,7 +87,13 @@ export const listPosts = asyncHandler(async (req: Request, res: Response): Promi
   if (authorID) query.authorID = new mongoose.Types.ObjectId(authorID);
   if (ownerID) query.ownerID = new mongoose.Types.ObjectId(ownerID);
   if (categoryID) query.categoryID = new mongoose.Types.ObjectId(categoryID);
-  if (status) query.status = status;
+  if (status) {
+    if (Array.isArray(status)) {
+      query.status = { $in: status };
+    } else {
+      query.status = status;
+    }
+  }
   if (tagIDs && tagIDs.length > 0) {
     query.tagIDs = { $in: tagIDs.map((id: string) => new mongoose.Types.ObjectId(id)) };
   }
@@ -236,6 +243,152 @@ export const createPost = asyncHandler(async (req: Request, res: Response): Prom
 
   const formatted = await formatPost(post, companyID);
   res.json(formatted);
+});
+
+/**
+ * POST /posts/upload
+ * Create a new post with file uploads (multipart/form-data)
+ * Combines image upload and post creation into a single endpoint
+ */
+export const uploadPost = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  // Extract form fields from multipart request
+  const { title, description, type, category, subCategory, email, authorID, boardID, categoryID, byID } = req.body;
+  
+  // Get uploaded files from multer
+  const files = req.files as Express.Multer.File[] | undefined;
+  
+  // Validate required fields - support both original and new field names
+  const postTitle = title;
+  const postDetails = description || req.body.details || '';
+  const postBoardID = boardID;
+  
+  if (!postTitle) {
+    throw new AppError('title is required', 400);
+  }
+  
+  if (!postBoardID) {
+    throw new AppError('boardID is required', 400);
+  }
+
+  // Validate board exists first (needed to get companyID for guest users)
+  if (!mongoose.Types.ObjectId.isValid(postBoardID)) {
+    throw new AppError('invalid boardID', 400);
+  }
+  const board = await Board.findById(postBoardID);
+  if (!board) {
+    throw new AppError('board not found', 404);
+  }
+
+  const companyID = board.companyID;
+
+  // Determine authorID - either from form data or from email lookup/creation
+  let resolvedAuthorID: mongoose.Types.ObjectId;
+  
+  if (authorID) {
+    if (!mongoose.Types.ObjectId.isValid(authorID)) {
+      throw new AppError('invalid authorID', 400);
+    }
+    const author = await User.findOne({ _id: authorID, companyID });
+    if (!author) {
+      throw new AppError('author not found', 404);
+    }
+    resolvedAuthorID = author._id;
+  } else if (email) {
+    // Try to find user by email or create a guest user
+    let user = await User.findOne({ email, companyID });
+    if (!user) {
+      user = await User.create({
+        companyID,
+        email,
+        name: email.split('@')[0],
+        isAdmin: false,
+      });
+    }
+    resolvedAuthorID = user._id;
+  } else {
+    throw new AppError('authorID or email is required', 400);
+  }
+
+  // Upload files to blob storage if any
+  let imageURLs: string[] = [];
+  if (files && files.length > 0) {
+    try {
+      imageURLs = await uploadFiles(files);
+    } catch (err) {
+      console.error('Failed to upload files:', err);
+      throw new AppError('Failed to upload images', 500);
+    }
+  }
+
+  // Validate category if provided (support both categoryID and category name)
+  let validCategoryID: mongoose.Types.ObjectId | undefined;
+  if (categoryID) {
+    if (mongoose.Types.ObjectId.isValid(categoryID)) {
+      const categoryDoc = await Category.findOne({ _id: categoryID, boardID: board._id });
+      if (!categoryDoc) {
+        throw new AppError('category not found', 404);
+      }
+      validCategoryID = categoryDoc._id;
+    }
+  } else if (category) {
+    // Try to find category by name
+    const categoryDoc = await Category.findOne({ name: category, boardID: board._id });
+    if (categoryDoc) {
+      validCategoryID = categoryDoc._id;
+    }
+  }
+
+  // Sanitize HTML content
+  const sanitizedDetails = sanitizeContent(postDetails);
+
+  // Create post
+  const post = await Post.create({
+    companyID,
+    boardID: board._id,
+    authorID: resolvedAuthorID,
+    byID: byID ? new mongoose.Types.ObjectId(byID) : undefined,
+    categoryID: validCategoryID,
+    title: postTitle,
+    details: sanitizedDetails,
+    imageURLs,
+    status: 'open',
+    score: 0,
+    commentCount: 0,
+  });
+
+  // Update board post count
+  await Board.updateOne({ _id: board._id }, { $inc: { postCount: 1 } });
+
+  // Update category post count if applicable
+  if (validCategoryID) {
+    await Category.updateOne({ _id: validCategoryID }, { $inc: { postCount: 1 } });
+  }
+
+  // Auto-upvote by author
+  await Vote.create({
+    companyID,
+    postID: post._id,
+    voterID: resolvedAuthorID,
+  });
+  await Post.updateOne({ _id: post._id }, { $inc: { score: 1 } });
+
+  // Emit notification
+  notifications.emit('post.created', {
+    companyID: companyID.toString(),
+    data: { postID: post._id.toString(), title: postTitle, boardID: board._id.toString() },
+  });
+
+  // Return response in the format expected by the frontend specification
+  res.json({
+    isSuccessful: true,
+    message: 'Feedback submitted successfully',
+    data: {
+      id: post._id.toString(),
+      title: postTitle,
+      imageUrls: imageURLs,
+      post: await formatPost(post, companyID),
+    },
+  });
 });
 
 /**
