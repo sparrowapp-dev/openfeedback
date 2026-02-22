@@ -1,6 +1,17 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Load .env from the monorepo root (when running via pnpm from workspace root or api folder)
+// Try multiple possible locations for the .env file
+const possibleEnvPaths = [
+  path.resolve(process.cwd(), '.env'),           // If running from monorepo root
+  path.resolve(process.cwd(), '../../.env'),     // If running from apps/api
+];
+
+for (const envPath of possibleEnvPaths) {
+  const result = dotenv.config({ path: envPath });
+  if (!result.error) break;
+}
 
 export const config = {
   // Server
@@ -26,6 +37,9 @@ export const config = {
   // Rate Limiting
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+  
+  // Blob Storage (Azure Blob Storage SAS URL)
+  blobStorageUrl: process.env.BLOB_STORAGE || '',
 } as const;
 
 export type Config = typeof config;
