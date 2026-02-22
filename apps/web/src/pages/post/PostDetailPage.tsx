@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useFeedbackStore } from '../../stores/feedbackStore';
@@ -10,6 +10,8 @@ import type { PostStatus, IComment, ICategory } from '@openfeedback/shared';
 import {
   ChevronLeftIcon,
   ChatBubbleLeftIcon,
+  PhotoIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import * as api from '../../services/api';
@@ -31,6 +33,9 @@ export function PostDetailPage() {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get current board to retrieve available statuses
   const currentBoard = currentPost?.board ? boards.find(b => b.id === currentPost.board.id) : null;
@@ -80,6 +85,40 @@ export function PostDetailPage() {
     }
   };
 
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    // Filter only image files
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    // Limit to 10 files
+    const limitedFiles = imageFiles.slice(0, 10 - selectedFiles.length);
+    
+    // Create preview URLs
+    const newPreviewUrls = limitedFiles.map(file => URL.createObjectURL(file));
+    
+    setSelectedFiles(prev => [...prev, ...limitedFiles]);
+    setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    URL.revokeObjectURL(previewUrls[index]);
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !postId) {
       return;
@@ -94,13 +133,18 @@ export function PostDetailPage() {
         return;
       }
 
-      const comment = await api.createComment({
+      const response = await api.uploadComment({
         postID: postId,
         authorID: authorID,
         value: newComment,
+        files: selectedFiles.length > 0 ? selectedFiles : undefined,
       });
-      setComments([...comments, comment]);
+      setComments([...comments, response.data.comment]);
       setNewComment('');
+      // Clear files
+      setSelectedFiles([]);
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
       toast.success('Comment added!');
     } catch (err) {
       console.error('Comment submission error:', err);
@@ -317,6 +361,50 @@ export function PostDetailPage() {
             onChange={(e) => setNewComment(e.target.value)}
             rows={3}
           />
+
+          {/* File Upload */}
+          <div className="of-mt-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="of-hidden"
+              id="comment-file-upload"
+            />
+            <label
+              htmlFor="comment-file-upload"
+              className="of-inline-flex of-items-center of-gap-1 of-px-3 of-py-1.5 of-text-sm of-text-gray-600 of-bg-gray-100 of-rounded-lg of-cursor-pointer hover:of-bg-gray-200 of-transition-colors"
+            >
+              <PhotoIcon className="of-w-4 of-h-4" />
+              Attach Images
+            </label>
+          </div>
+
+          {/* Image Previews */}
+          {previewUrls.length > 0 && (
+            <div className="of-mt-2 of-flex of-flex-wrap of-gap-2">
+              {previewUrls.map((url, index) => (
+                <div key={url} className="of-relative of-group">
+                  <img
+                    src={url}
+                    alt={`Preview ${index + 1}`}
+                    className="of-w-16 of-h-16 of-object-cover of-rounded-lg of-border of-border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(index)}
+                    className="of-absolute of-top-0.5 of-right-0.5 of-w-4 of-h-4 of-bg-red-500 of-text-white of-rounded-full of-flex of-items-center of-justify-center of-opacity-0 group-hover:of-opacity-100 of-transition-opacity"
+                    aria-label="Remove image"
+                  >
+                    <XMarkIcon className="of-w-2.5 of-h-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="of-flex of-justify-end of-mt-3">
             <Button
               onClick={handleSubmitComment}
@@ -363,6 +451,26 @@ export function PostDetailPage() {
                     <p className="of-mt-1 of-text-gray-700 of-text-sm of-whitespace-pre-wrap">
                       {comment.value}
                     </p>
+                    {/* Comment Images */}
+                    {comment.imageURLs && comment.imageURLs.length > 0 && (
+                      <div className="of-mt-2 of-flex of-flex-wrap of-gap-2">
+                        {comment.imageURLs.map((url, index) => (
+                          <a 
+                            key={index} 
+                            href={url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="of-block"
+                          >
+                            <img
+                              src={url}
+                              alt={`Attachment ${index + 1}`}
+                              className="of-max-w-[200px] of-max-h-[150px] of-object-cover of-rounded-lg of-border of-border-gray-200 hover:of-opacity-90 of-transition-opacity"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>

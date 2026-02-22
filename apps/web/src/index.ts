@@ -44,6 +44,7 @@ export {
   listPosts,
   retrievePost,
   createPost,
+  uploadPost,
   updatePost,
   changePostStatus,
   createVote,
@@ -51,11 +52,16 @@ export {
   listVotes,
   listComments,
   createComment,
+  uploadComment,
   listCategories,
   createCategory,
   deleteCategory,
   type OpenFeedbackConfig,
   type ListPostsParams,
+  type UploadPostInput,
+  type UploadPostResponse,
+  type UploadCommentInput,
+  type UploadCommentResponse,
 } from './services/api';
 
 // Re-export shared types
