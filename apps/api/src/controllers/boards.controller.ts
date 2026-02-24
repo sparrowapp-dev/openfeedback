@@ -29,6 +29,14 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
   // Build match query - filter by boardID if provided
   const matchQuery: any = { companyID: new mongoose.Types.ObjectId(companyID) };
   if (boardID) {
+    // Validate that the board exists and belongs to this company
+    const boardExists = await Board.findOne({ 
+      _id: new mongoose.Types.ObjectId(boardID), 
+      companyID: new mongoose.Types.ObjectId(companyID) 
+    });
+    if (!boardExists) {
+      throw new AppError('board not found or does not belong to this company', 404);
+    }
     matchQuery._id = new mongoose.Types.ObjectId(boardID);
   }
 
