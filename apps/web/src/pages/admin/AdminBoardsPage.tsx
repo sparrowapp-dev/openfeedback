@@ -9,6 +9,8 @@ import {
   TrashIcon,
   EyeIcon,
   EyeSlashIcon,
+  ClipboardIcon,
+  CheckIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -20,6 +22,18 @@ export function AdminBoardsPage() {
   const [editingBoard, setEditingBoard] = useState<{ id: string; name: string; isPrivate: boolean } | null>(null);
   const [newBoard, setNewBoard] = useState<CreateBoardData>({ name: '', isPrivate: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedBoardId, setCopiedBoardId] = useState<string | null>(null);
+
+  const handleCopyBoardId = async (boardId: string) => {
+    try {
+      await navigator.clipboard.writeText(boardId);
+      setCopiedBoardId(boardId);
+      toast.success('Board ID copied to clipboard!');
+      setTimeout(() => setCopiedBoardId(null), 2000);
+    } catch (err) {
+      toast.error('Failed to copy Board ID');
+    }
+  };
 
   useEffect(() => {
     fetchBoards();
@@ -184,11 +198,24 @@ export function AdminBoardsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => handleCopyBoardId(board.id)}
+                          title="Copy Board ID"
+                        >
+                          {copiedBoardId === board.id ? (
+                            <CheckIcon className="of-w-4 of-h-4 of-text-green-600" />
+                          ) : (
+                            <ClipboardIcon className="of-w-4 of-h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => setEditingBoard({
                             id: board.id,
                             name: board.name,
                             isPrivate: board.isPrivate,
                           })}
+                          title="Edit Board"
                         >
                           <PencilIcon className="of-w-4 of-h-4" />
                         </Button>
@@ -197,6 +224,7 @@ export function AdminBoardsPage() {
                           variant="ghost"
                           onClick={() => handleDelete(board.id, board.name)}
                           className="of-text-red-600 hover:of-text-red-700"
+                          title="Delete Board"
                         >
                           <TrashIcon className="of-w-4 of-h-4" />
                         </Button>

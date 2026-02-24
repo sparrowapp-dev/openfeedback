@@ -4,6 +4,8 @@ import { Board, Company, Post } from '../models/index.js';
 import { asyncHandler, AppError } from '../middlewares/index.js';
 
 export const listBoards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { boardID } = req.body;
+
   // Get companyID from authenticated user first, then subdomain/context
   let companyID: mongoose.Types.ObjectId;
 
@@ -24,9 +26,15 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
     companyID = defaultCompany._id;
   }
 
+  // Build match query - filter by boardID if provided
+  const matchQuery: any = { companyID: new mongoose.Types.ObjectId(companyID) };
+  if (boardID) {
+    matchQuery._id = new mongoose.Types.ObjectId(boardID);
+  }
+
   // Get boards with dynamic postCount via aggregation
   const boards = await Board.aggregate([
-    { $match: { companyID: new mongoose.Types.ObjectId(companyID) } },
+    { $match: matchQuery },
     {
       $lookup: {
         from: 'posts',

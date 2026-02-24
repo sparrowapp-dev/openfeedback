@@ -45,6 +45,7 @@ export const cursorPaginationSchema = z.object({
 // Board schemas
 export const boardListSchema = z.object({
   apiKey: z.string().optional(),
+  boardID: objectIdSchema.optional(),
 });
 
 export const boardRetrieveSchema = z.object({
