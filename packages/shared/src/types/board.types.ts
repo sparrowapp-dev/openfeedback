@@ -1,6 +1,5 @@
 /**
- * Board interface - matches Canny API v1 response structure
- * @see https://developers.canny.io/api-reference#boards
+ * Board interface - API v1 response structure
  */
 export interface IBoard {
   /** Internal ID (MongoDB ObjectID) */

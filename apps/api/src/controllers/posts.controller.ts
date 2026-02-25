@@ -7,7 +7,7 @@ import { uploadFiles } from '../services/index.js';
 import type { PostStatus } from '../models/Post.js';
 
 /**
- * Helper to populate and format a post for Canny-compatible response
+ * Helper to populate and format a post for API response
  */
 async function formatPost(post: any, companyID: mongoose.Types.ObjectId) {
   // Populate related documents

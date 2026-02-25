@@ -2,8 +2,7 @@ import type { IUser } from './user.types.js';
 import type { IBoard } from './board.types.js';
 
 /**
- * Vote interface - matches Canny API v1 response structure
- * @see https://developers.canny.io/api-reference#votes
+ * Vote interface - API v1 response structure
  */
 export interface IVote {
   /** Internal ID (MongoDB ObjectID) */
@@ -32,7 +31,7 @@ export interface IVotePost {
 }
 
 /**
- * Input for vote creation - matches Canny API
+ * Input for vote creation
  */
 export interface IVoteCreateInput {
   /** Post ID to vote on */

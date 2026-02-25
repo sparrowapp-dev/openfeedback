@@ -13,7 +13,7 @@ export function validate(schema: ZodSchema) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Extract first error message for Canny-compatible format
+        // Extract first error message for standard format
         const firstError = error.errors[0];
         const message = firstError?.message || 'validation error';
         next(new AppError(message, 400));
@@ -25,7 +25,7 @@ export function validate(schema: ZodSchema) {
 }
 
 /**
- * Common validation schemas matching Canny API requirements
+ * Common validation schemas for API requests
  */
 
 // MongoDB ObjectID validation

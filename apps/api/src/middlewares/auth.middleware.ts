@@ -16,7 +16,7 @@ declare global {
 /**
  * API Key authentication middleware
  * Extracts apiKey from request body or query, validates against Company collection
- * Returns Canny-compatible error format
+ * Returns standard error format
  */
 export async function apiKeyAuth(
   req: Request,
@@ -24,7 +24,7 @@ export async function apiKeyAuth(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Extract apiKey from body or query (Canny accepts both)
+    // Extract apiKey from body or query (accepts both)
     const apiKey = req.body?.apiKey || req.query?.apiKey;
 
     if (!apiKey) {

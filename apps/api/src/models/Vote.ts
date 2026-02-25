@@ -48,7 +48,7 @@ const voteSchema = new Schema<IVoteDocument, IVoteModel>({
 // Enforce unique vote per user per post
 voteSchema.index({ postID: 1, voterID: 1 }, { unique: true });
 
-// Transform output to match Canny API format
+// Transform output to API format
 voteSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {

@@ -2,8 +2,7 @@ import type { IUser } from './user.types.js';
 import type { IBoard } from './board.types.js';
 
 /**
- * Comment interface - matches Canny API v1 response structure
- * @see https://developers.canny.io/api-reference#comments
+ * Comment interface - API v1 response structure
  */
 export interface IComment {
   /** Internal ID (MongoDB ObjectID) */
@@ -46,7 +45,7 @@ export interface ICommentPost {
 }
 
 /**
- * Input for comment creation - matches Canny API
+ * Input for comment creation
  */
 export interface ICommentCreateInput {
   /** Post ID to comment on */

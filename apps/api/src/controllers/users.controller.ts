@@ -7,7 +7,7 @@ import { cursorPaginate, parseCursorPaginationParams } from '../utils/index.js';
 /**
  * POST /users/create_or_update
  * Create or update a user (upsert)
- * Canny-compatible: returns { id: "..." }
+ * Returns { id: "..." }
  */
 export const createOrUpdateUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { userID, name, email, avatarURL, customFields, companies } = req.body;
@@ -54,7 +54,7 @@ export const createOrUpdateUser = asyncHandler(async (req: Request, res: Respons
     { upsert: true, new: true }
   );
 
-  // Canny returns just the internal ID
+  // Return just the internal ID
   res.json({ id: user._id.toString() });
 });
 
@@ -154,6 +154,6 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response): Prom
     throw new AppError('user not found', 404);
   }
 
-  // Canny returns "success" string for delete operations
+  // Return "success" string for delete operations
   res.json('success');
 });

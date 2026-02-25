@@ -1,5 +1,5 @@
 /**
- * Tag interface - matches Canny API response structure
+ * Tag interface - API response structure
  */
 export interface ITag {
   /** Internal ID (MongoDB ObjectID) */

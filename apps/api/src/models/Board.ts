@@ -76,7 +76,7 @@ boardSchema.pre('save', function(next) {
   next();
 });
 
-// Transform output to match Canny API format
+// Transform output to API format
 boardSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {

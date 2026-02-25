@@ -5,7 +5,7 @@ import { asyncHandler, AppError, htmlToPlainText } from '../middlewares/index.js
 import { skipPaginate, parsePaginationParams, notifications } from '../utils/index.js';
 
 /**
- * Helper to format a changelog entry for Canny-compatible response
+ * Helper to format a changelog entry for API response
  */
 async function formatChangelog(entry: any) {
   // Fetch linked posts

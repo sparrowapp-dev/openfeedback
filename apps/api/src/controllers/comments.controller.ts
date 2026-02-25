@@ -6,7 +6,7 @@ import { skipPaginate, cursorPaginate, parsePaginationParams, parseCursorPaginat
 import { uploadFiles } from '../services/index.js';
 
 /**
- * Helper to format a comment for Canny-compatible response
+ * Helper to format a comment for API response
  */
 async function formatComment(comment: any) {
   const [author, post] = await Promise.all([

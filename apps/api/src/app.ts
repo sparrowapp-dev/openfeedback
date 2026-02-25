@@ -47,7 +47,7 @@ export function createApp(): express.Application {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // API routes - Canny-compatible v1 endpoints
+  // API routes - v1 endpoints
   app.use('/api/v1', apiRoutes);
 
   // Error handler

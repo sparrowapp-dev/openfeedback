@@ -4,8 +4,7 @@ import type { ICategory } from './category.types.js';
 import type { ITag } from './tag.types.js';
 
 /**
- * Post status enum - matches Canny's exact status values
- * Note: Canny uses spaces in some status values
+ * Post status enum - available status values
  */
 export type PostStatus =
   | 'open'
@@ -25,8 +24,7 @@ export const POST_STATUSES: PostStatus[] = [
 ];
 
 /**
- * Post interface - matches Canny API v1 response structure
- * @see https://developers.canny.io/api-reference#posts
+ * Post interface - API v1 response structure
  */
 export interface IPost {
   /** Internal ID (MongoDB ObjectID) */
@@ -80,7 +78,7 @@ export interface IJiraIssue {
 }
 
 /**
- * Input for post creation - matches Canny API
+ * Input for post creation
  */
 export interface IPostCreateInput {
   /** Author's internal ID */

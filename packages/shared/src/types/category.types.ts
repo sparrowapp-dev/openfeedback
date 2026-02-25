@@ -1,5 +1,5 @@
 /**
- * Category interface - matches Canny API response structure
+ * Category interface - API response structure
  */
 export interface ICategory {
   /** Internal ID (MongoDB ObjectID) */

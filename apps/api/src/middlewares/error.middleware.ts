@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 /**
- * Canny-compatible error response format
+ * API error response format
  */
 export interface ApiError extends Error {
   statusCode?: number;
@@ -26,7 +26,7 @@ export class AppError extends Error implements ApiError {
 
 /**
  * Global error handler middleware
- * Returns errors in Canny-compatible format: { "error": "message" }
+ * Returns errors in standard format: { "error": "message" }
  */
 export function errorHandler(
   err: ApiError,
@@ -46,7 +46,7 @@ export function errorHandler(
     });
   }
 
-  // Return Canny-compatible error format
+  // Return standard error format
   res.status(statusCode).json({ error: message });
 }
 

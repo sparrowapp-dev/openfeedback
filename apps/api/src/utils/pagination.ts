@@ -1,7 +1,7 @@
 import { Query, Document } from 'mongoose';
 
 /**
- * Skip-based pagination result (Canny API v1 style)
+ * Skip-based pagination result (API v1 style)
  */
 export interface SkipPaginationResult<T> {
   items: T[];
@@ -9,7 +9,7 @@ export interface SkipPaginationResult<T> {
 }
 
 /**
- * Cursor-based pagination result (Canny API v2 style)
+ * Cursor-based pagination result (API v2 style)
  */
 export interface CursorPaginationResult<T> {
   items: T[];

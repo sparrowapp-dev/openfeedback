@@ -1,7 +1,7 @@
 import type { IPost } from './post.types.js';
 
 /**
- * Changelog entry interface - matches Canny API response structure
+ * Changelog entry interface - API response structure
  */
 export interface IChangelog {
   /** Internal ID (MongoDB ObjectID) */
