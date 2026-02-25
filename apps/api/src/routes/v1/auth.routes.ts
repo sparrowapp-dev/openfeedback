@@ -167,7 +167,7 @@ router.post(
       if (!user) {
         throw new AppError('invalid email or password', 401);
       }
-      company = await Company.findById(user.companyID);
+      company = await Company.findById(user.companyID) ?? undefined;
       if (!company) {
         throw new AppError('company not found for this user', 404);
       }
