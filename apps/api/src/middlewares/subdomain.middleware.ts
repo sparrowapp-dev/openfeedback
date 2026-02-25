@@ -67,7 +67,7 @@ export async function optionalSubdomainAuth(
     }
 
     const requestSubdomain = req.body?.subdomain || req.query?.subdomain || req.headers['x-company-subdomain'];
-    //const requestSubdomain = 'techdome'
+    //const requestSubdomain = 'techdomesolutions'
     if (requestSubdomain && typeof requestSubdomain === 'string') {
       subdomain = requestSubdomain;
     }
