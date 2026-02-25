@@ -9,7 +9,7 @@ const swaggerDefinition = {
     title: 'OpenFeedback API',
     version: '1.0.0',
     description: `
-OpenFeedback is a self-hosted, Canny.io-compatible feedback collection platform.
+OpenFeedback is a self-hosted, open-source feedback collection and feature request management platform.
 
 ## Authentication
 
@@ -23,10 +23,9 @@ Include your API key in the request body:
 }
 \`\`\`
 
-## Canny Compatibility
+## API Design
 
-This API is designed to be 100% compatible with Canny.io's API. All endpoints use POST method
-with JSON body parameters, matching Canny's API design.
+All endpoints use POST method with JSON body parameters for consistency and security.
 
 ## Response Format
 

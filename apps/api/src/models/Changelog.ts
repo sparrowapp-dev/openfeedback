@@ -96,7 +96,7 @@ changelogSchema.virtual('url').get(function() {
   return `/changelog/${this._id}`;
 });
 
-// Transform output to match Canny API format
+// Transform output to API format
 changelogSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {

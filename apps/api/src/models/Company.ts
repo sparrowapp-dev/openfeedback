@@ -89,7 +89,7 @@ companySchema.statics.findByApiKey = async function(apiKey: string): Promise<ICo
   return null;
 };
 
-// Transform output to match Canny format
+// Transform output to API format
 companySchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {

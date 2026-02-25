@@ -87,7 +87,7 @@ const commentSchema = new Schema<ICommentDocument, ICommentModel>({
 // Compound indexes
 commentSchema.index({ postID: 1, created: -1 });
 
-// Transform output to match Canny API format
+// Transform output to API format
 commentSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {

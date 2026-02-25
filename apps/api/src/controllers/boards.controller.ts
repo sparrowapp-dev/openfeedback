@@ -65,7 +65,7 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
     //{ $limit: 1 },
   ]);
 
-  // Transform to Canny format
+  // Transform to response format
   const formattedBoards = boards.map(board => ({
     id: board._id.toString(),
     created: board.created?.toISOString(),
@@ -180,6 +180,6 @@ export const deleteBoard = asyncHandler(async (req: Request, res: Response): Pro
     throw new AppError('board not found', 404);
   }
 
-  // Canny returns "success" string for delete operations
+  // Return "success" string for delete operations
   res.json('success');
 });

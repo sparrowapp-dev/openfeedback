@@ -1,7 +1,7 @@
 {
   "name": "@openfeedback/api",
   "version": "1.0.0",
-  "description": "OpenFeedback API server - Canny.io compatible",
+  "description": "OpenFeedback API server",
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
   "scripts": {

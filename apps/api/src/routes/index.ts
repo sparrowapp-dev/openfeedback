@@ -14,7 +14,7 @@ import { notFoundHandler } from '../middlewares/index.js';
 
 export const apiRoutes = Router();
 
-// Canny-compatible API endpoints
+// API v1 endpoints
 apiRoutes.use('/boards', boardsRoutes);
 apiRoutes.use('/users', usersRoutes);
 apiRoutes.use('/posts', postsRoutes);

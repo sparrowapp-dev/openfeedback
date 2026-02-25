@@ -125,12 +125,12 @@ userSchema.statics.findByIdentifier = async function(
   return null;
 };
 
-// Virtual for URL (Canny-style)
+// Virtual for URL
 userSchema.virtual('url').get(function() {
   return `/admin/user/${this._id}`;
 });
 
-// Transform output to match Canny API format exactly
+// Transform output to API format
 userSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {
@@ -138,7 +138,7 @@ userSchema.set('toJSON', {
     delete ret._id;
     delete ret.__v;
     delete ret.companyID;
-    delete ret.isShadow; // Internal field, not in Canny response
+    delete ret.isShadow; // Internal field, not in API response
     ret.created = ret.created?.toISOString();
     ret.lastActivity = ret.lastActivity?.toISOString();
     // Remove undefined fields

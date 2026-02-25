@@ -5,7 +5,7 @@ import { asyncHandler, AppError } from '../middlewares/index.js';
 import { skipPaginate, cursorPaginate, parsePaginationParams, parseCursorPaginationParams } from '../utils/index.js';
 
 /**
- * Helper to format a vote for Canny-compatible response
+ * Helper to format a vote for API response
  */
 async function formatVote(vote: any) {
   const [voter, post] = await Promise.all([
@@ -220,6 +220,6 @@ export const deleteVote = asyncHandler(async (req: Request, res: Response): Prom
     await Post.updateOne({ _id: postID }, { $inc: { score: -1 } });
   }
 
-  // Canny returns "success" even if vote didn't exist
+  // Return "success" even if vote didn't exist
   res.json('success');
 });

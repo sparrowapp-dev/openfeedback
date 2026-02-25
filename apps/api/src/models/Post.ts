@@ -145,7 +145,7 @@ postSchema.virtual('url').get(function() {
   return `/admin/post/${this._id}`;
 });
 
-// Transform output to match Canny API format
+// Transform output to API format
 postSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc: any, ret: any) => {

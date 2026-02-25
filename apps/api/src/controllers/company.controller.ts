@@ -6,7 +6,7 @@ import { asyncHandler, AppError } from '../middlewares/index.js';
 /**
  * POST /companies/create
  * Create a new company (admin/setup endpoint)
- * This is NOT part of the Canny API - it's for initial setup
+ * This is for initial setup and configuration
  */
 export const createCompany = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { name, domainWhitelist, subdomain, adminName, adminEmail, adminPassword } = req.body;
