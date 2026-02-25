@@ -142,6 +142,7 @@ router.get('/failure', (req: Request, res: Response) => {
  * POST /auth/login
  * Email/password login
  * Extracts company from subdomain (Host header) or request body/query
+ * On localhost without explicit subdomain: allows login by email alone (finds company from user)
  */
 router.post(
   '/login',
@@ -153,17 +154,32 @@ router.post(
       throw new AppError('email and password are required', 400);
     }
 
-    // Company should be extracted from subdomain middleware
-    const company = req.company;
+    const host = req.get('host') || req.hostname;
+    const isLocalhost = host?.startsWith('localhost') || host?.match(/^\d+\.\d+\.\d+\.\d+/);
+    const hasExplicitSubdomain = req.body?.subdomain || req.query?.subdomain || req.headers['x-company-subdomain'];
 
-    if (!company) {
-      throw new AppError('company not found. please check your subdomain', 404);
-    }
+    let company = req.company;
+    let user;
 
-    // Find user by email
-    const user = await User.findOne({ companyID: company._id, email: email.toLowerCase() });
-    if (!user) {
-      throw new AppError('invalid email or password', 401);
+    // On localhost without explicit subdomain: find user by email alone, then get their company
+    if (isLocalhost && !hasExplicitSubdomain) {
+      user = await User.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        throw new AppError('invalid email or password', 401);
+      }
+      company = await Company.findById(user.companyID);
+      if (!company) {
+        throw new AppError('company not found for this user', 404);
+      }
+    } else {
+      // Normal flow: require company from subdomain
+      if (!company) {
+        throw new AppError('company not found. please check your subdomain', 404);
+      }
+      user = await User.findOne({ companyID: company._id, email: email.toLowerCase() });
+      if (!user) {
+        throw new AppError('invalid email or password', 401);
+      }
     }
 
     // Check password (stored in customFields.passwordHash)
