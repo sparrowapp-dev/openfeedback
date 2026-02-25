@@ -37,6 +37,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/v1/auth/google/callback}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      BLOB_STORAGE: ${BLOB_STORAGE}
     depends_on:
       mongo:
         condition: service_healthy
