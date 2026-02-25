@@ -1,7 +1,7 @@
 {
   "name": "openfeedback",
   "version": "1.0.0",
-  "description": "Self-hosted, open-source alternative to Canny.io",
+  "description": "Self-hosted, open-source feedback and feature request management platform",
   "private": true,
   "scripts": {
     "dev": "pnpm -r --parallel run dev",

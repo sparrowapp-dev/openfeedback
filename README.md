@@ -1,6 +1,6 @@
 # OpenFeedback
 
-A self-hosted, open-source alternative to [Canny.io](https://canny.io) for collecting and managing user feedback.
+A Self-hosted, open-source feedback and feature request management platform.
 
 ## Features
 
