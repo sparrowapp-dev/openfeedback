@@ -1,5 +1,5 @@
 /**
- * Generic skip-based pagination response (Canny API v1 style)
+ * Generic skip-based pagination response (API v1 style)
  */
 export interface ISkipPaginatedResponse<T> {
   /** Whether there are more results */
@@ -24,7 +24,7 @@ export interface IPostsListResponse {
 }
 
 /**
- * Generic cursor-based pagination response (Canny API v2 style)
+ * Generic cursor-based pagination response (API v2 style)
  */
 export interface ICursorPaginatedResponse<T> {
   /** Whether there is a next page */

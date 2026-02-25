@@ -1,5 +1,5 @@
 /**
- * Company interface - internal representation (not part of Canny public API)
+ * Company interface - internal representation
  */
 export interface ICompany {
   /** Internal ID */

@@ -1,15 +1,14 @@
 /**
- * User interface - matches Canny API v1 response structure exactly
- * @see https://developers.canny.io/api-reference#users
+ * User interface - API v1 response structure
  */
 export interface IUser {
-  /** Internal Canny/OpenFeedback ID (MongoDB ObjectID) */
+  /** Internal OpenFeedback ID (MongoDB ObjectID) */
   id: string;
   /** Display alias for anonymous users */
   alias?: string;
   /** User avatar URL */
   avatarURL?: string;
-  /** Companies the user belongs to (Canny format) */
+  /** Companies the user belongs to */
   companies?: IUserCompany[];
   /** Account creation date (ISO 8601) */
   created: string;
@@ -38,7 +37,7 @@ export interface IUserCompany {
 }
 
 /**
- * Input for user creation/update - matches Canny API
+ * Input for user creation/update
  */
 export interface IUserCreateInput {
   /** External user ID from client's system */

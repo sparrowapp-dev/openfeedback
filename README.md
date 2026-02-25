@@ -4,12 +4,12 @@ A Self-hosted, open-source feedback and feature request management platform.
 
 ## Features
 
-- **100% Canny API Compatible** - Existing Canny clients work by changing `BASE_URL`
 - **Shadow Users** - Anonymous feedback without forced sign-up via `useShadowUser` hook
 - **Embeddable Components** - React components you can embed anywhere
 - **Full-Stack Solution** - API + Web dashboard included
 - **Google SSO** - Plug-and-play authentication with JWT
 - **Self-Hosted** - Your data stays on your servers
+- **RESTful API** - Well-documented API with Swagger/OpenAPI support
 
 ## Quick Start
 
@@ -81,7 +81,7 @@ openfeedback/
 
 ## API Endpoints
 
-All endpoints follow Canny.io API conventions and accept `POST` requests with `apiKey` in the body.
+All endpoints accept `POST` requests with `apiKey` in the body for authentication.
 
 ### Boards
 - `POST /api/v1/boards/list` - List all boards
@@ -205,20 +205,6 @@ function MyComponent() {
 | `GOOGLE_CLIENT_SECRET` | Google OAuth secret | Optional |
 | `PORT` | API server port | `3000` |
 | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:5173` |
-
-## Migration from Canny.io
-
-1. Export your Canny data
-2. Set up OpenFeedback
-3. Point your existing Canny SDK to your OpenFeedback URL:
-
-```js
-// Before
-Canny('init', { apiKey: 'xxx', basePath: 'https://canny.io/api/v1' });
-
-// After
-Canny('init', { apiKey: 'your-of-key', basePath: 'https://your-openfeedback.com/api/v1' });
-```
 
 ## Tech Stack
 
