@@ -33,6 +33,11 @@ spec:
             secretKeyRef:
               name: openfeedback-api-secrets
               key: MONGODB_URI
+        - name: BLOB_STORAGE
+          valueFrom:
+            secretKeyRef:
+              name: openfeedback-api-secrets
+              key: BLOB_STORAGE 
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
