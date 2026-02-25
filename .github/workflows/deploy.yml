@@ -1,0 +1,104 @@
+name: Deploy to AKS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      api_version:
+        description: 'API image version (optional, auto-generated if empty)'
+        required: false
+        default: ''
+        type: string
+      web_version:
+        description: 'Web image version (optional, auto-generated if empty)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  REGISTRY: techdomeacr.azurecr.io
+  NAMESPACE: canny
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name:  Checkout
+      uses: actions/checkout@v4
+
+    - name:  Login to ACR
+      uses: Azure/docker-login@v1
+      with:
+        login-server: ${{ env.REGISTRY }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name:  Set Versions (Auto or Manual)
+      id: versions
+      run: |
+        if [ -n "${{ github.event.inputs.api_version }}" ]; then
+          # Use manual input if provided
+          echo "api_version=${{ github.event.inputs.api_version }}" >> $GITHUB_OUTPUT
+          echo "web_version=${{ github.event.inputs.web_version }}" >> $GITHUB_OUTPUT
+        else
+          # Auto-generate version: 1.0.{run_number}-{short_sha}
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "api_version=1.0.${{ github.run_number }}-$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "web_version=1.0.${{ github.run_number }}-$SHORT_SHA" >> $GITHUB_OUTPUT
+        fi
+
+    - name:  Build API
+      run: |
+        docker build . -f apps/api/Dockerfile \
+          -t ${{ env.REGISTRY }}/openfeedback-api:${{ steps.versions.outputs.api_version }}
+        docker push ${{ env.REGISTRY }}/openfeedback-api:${{ steps.versions.outputs.api_version }}
+
+    - name:  Build Web
+      run: |
+        docker build . -f apps/web/Dockerfile \
+          --build-arg VITE_API_URL=https://openfeedback-api.sparrowapp.dev/api/v1 \
+          --build-arg VITE_SUBDOMAIN=demo \
+          --build-arg VITE_API_KEY=${{ secrets.VITE_API_KEY }} \
+          -t ${{ env.REGISTRY }}/openfeedback-web:${{ steps.versions.outputs.web_version }}
+        docker push ${{ env.REGISTRY }}/openfeedback-web:${{ steps.versions.outputs.web_version }}
+
+    - name:  Replace API Version
+      uses: richardrigutins/replace-in-files@v1
+      with:
+        files: "./deploymentManifests/api-deployment.yml"
+        search-text: '_API_VERSION_'
+        replacement-text: '${{ steps.versions.outputs.api_version }}'
+
+    - name:  Replace Web Version
+      uses: richardrigutins/replace-in-files@v1
+      with:
+        files: "./deploymentManifests/web-deployment.yml"
+        search-text: '_WEB_VERSION_'
+        replacement-text: '${{ steps.versions.outputs.web_version }}'
+
+    - name:  Setup kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name:  Set K8s Context
+      uses: Azure/k8s-set-context@v3
+      with:
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+    - name:  Deploy (Deployments Only)
+      uses: Azure/k8s-deploy@v4
+      with:
+        action: deploy
+        namespace: ${{ env.NAMESPACE }}
+        manifests: |
+          ./deploymentManifests/api-deployment.yml
+          ./deploymentManifests/web-deployment.yml
+        images: |
+          ${{ env.REGISTRY }}/openfeedback-api:${{ steps.versions.outputs.api_version }}
+          ${{ env.REGISTRY }}/openfeedback-web:${{ steps.versions.outputs.web_version }}
+
+
+    - name:  Verify
+      run: |
+        kubectl rollout status deployment/openfeedback-api -n ${{ env.NAMESPACE }} --timeout=300s
+        kubectl rollout status deployment/openfeedback-web -n ${{ env.NAMESPACE }} --timeout=300s

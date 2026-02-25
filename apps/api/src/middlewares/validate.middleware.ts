@@ -9,7 +9,7 @@ import { AppError } from './error.middleware.js';
 export function validate(schema: ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      schema.parse(req.body);
+      req.body = schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -45,6 +45,7 @@ export const cursorPaginationSchema = z.object({
 // Board schemas
 export const boardListSchema = z.object({
   apiKey: z.string().optional(),
+  boardID: objectIdSchema.optional(),
 });
 
 export const boardRetrieveSchema = z.object({
@@ -98,7 +99,11 @@ export const postListSchema = z.object({
   ownerID: objectIdSchema.optional(),
   categoryID: objectIdSchema.optional(),
   tagIDs: z.array(objectIdSchema).optional(),
-  status: z.enum(['open', 'under review', 'planned', 'in progress', 'complete', 'closed']).optional(),
+  status: z.union([
+    z.enum(['open', 'under review', 'planned', 'in progress', 'complete', 'closed']).transform(val => [val]),
+    z.string().transform(val => val.split(',').map(s => s.trim())).pipe(z.array(z.enum(['open', 'under review', 'planned', 'in progress', 'complete', 'closed']))),
+    z.array(z.enum(['open', 'under review', 'planned', 'in progress', 'complete', 'closed']))
+  ]).optional(),
   sort: z.enum(['newest', 'oldest', 'score', 'statusChanged', 'trending']).default('newest').optional(),
   search: z.string().optional(),
   limit: z.coerce.number().min(1).max(100).default(10).optional(),

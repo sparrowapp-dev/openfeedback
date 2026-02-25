@@ -1,9 +1,11 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { flexibleAuth, optionalApiKeyAuth, optionalSubdomainAuth, validate, postListSchema, postRetrieveSchema, postCreateSchema, postUpdateSchema, postChangeStatusSchema, postAddTagSchema } from '../../middlewares/index.js';
 import { 
   listPosts, 
   retrievePost, 
-  createPost, 
+  createPost,
+  uploadPost,
   updatePost, 
   changePostStatus, 
   deletePost,
@@ -12,6 +14,23 @@ import {
 } from '../../controllers/index.js';
 
 const router = Router();
+
+// Configure multer for file uploads (memory storage for blob upload)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max file size
+    files: 10, // Max 10 files
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
 
 // Apply subdomain middleware to all post routes
 router.use(optionalSubdomainAuth);
@@ -24,6 +43,9 @@ router.post('/retrieve', optionalApiKeyAuth, validate(postRetrieveSchema), retri
 
 // POST /posts/create - Create a new post (public for guests)
 router.post('/create', optionalApiKeyAuth, validate(postCreateSchema), createPost);
+
+// POST /posts/upload - Create a new post with file uploads (multipart/form-data)
+router.post('/upload', optionalApiKeyAuth, upload.array('files', 10), uploadPost);
 
 // POST /posts/update - Update a post (requires auth)
 router.post('/update', flexibleAuth, validate(postUpdateSchema), updatePost);

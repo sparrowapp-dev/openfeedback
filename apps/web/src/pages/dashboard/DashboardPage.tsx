@@ -5,10 +5,13 @@ import { useBoardsStore } from '../../stores/boardsStore';
 import { Button, Card, CardTitle, CardDescription, Modal, Input, Spinner, Badge } from '../../components/ui';
 import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-
+import { IBoard } from '@/index';
 export function DashboardPage() {
   const { user } = useAuthStore();
-  const { boards, isLoading, fetchBoards, createBoard } = useBoardsStore();
+  const {  isLoading, fetchBoards, createBoard, boards: rawBoards } = useBoardsStore();
+  
+  // Ensure boards is always an array
+  const boards = Array.isArray(rawBoards) ? rawBoards : [rawBoards].filter(Boolean);
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');

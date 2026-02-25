@@ -128,12 +128,15 @@ export function Roadmap({
     fetchPosts,
     fetchCategories,
     setCurrentBoard,
-    boards,
+    boards: rawBoards,
     categories,
   } = useFeedbackStore();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [activePost, setActivePost] = useState<IPost | null>(null);
+
+  // Ensure boards is always an array
+  const boards = Array.isArray(rawBoards) ? rawBoards : [rawBoards].filter(Boolean);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

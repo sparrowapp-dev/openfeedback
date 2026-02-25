@@ -45,6 +45,7 @@ interface FeedbackState {
   
   // Mutations
   createPost: (input: { boardID: string; authorID: string; title: string; details?: string; categoryID?: string }) => Promise<IPost>;
+  createPostWithFiles: (input: { boardID: string; authorID?: string; email?: string; title: string; description?: string; categoryID?: string; files?: File[] }) => Promise<IPost>;
   votePost: (postID: string, voterID: string) => Promise<void>;
   unvotePost: (postID: string, voterID: string) => Promise<void>;
 }
@@ -191,6 +192,22 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
   // Create a new post
   createPost: async (input) => {
     const post = await api.createPost(input);
+    set((state) => ({ posts: [post, ...state.posts] }));
+    return post;
+  },
+
+  // Create a new post with file uploads
+  createPostWithFiles: async (input) => {
+    const response = await api.uploadPost({
+      boardID: input.boardID,
+      authorID: input.authorID,
+      email: input.email,
+      title: input.title,
+      description: input.description,
+      categoryID: input.categoryID,
+      files: input.files,
+    });
+    const post = response.data.post;
     set((state) => ({ posts: [post, ...state.posts] }));
     return post;
   },

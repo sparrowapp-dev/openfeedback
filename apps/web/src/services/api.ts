@@ -112,7 +112,7 @@ async function apiRequest<T>(endpoint: string, body: object = {}): Promise<T> {
   
   // Check if user is authenticated (has JWT token)
   const authState = useAuthStore.getState();
-  const { accessToken } = authState;
+  const { accessToken, user } = authState;
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -121,6 +121,11 @@ async function apiRequest<T>(endpoint: string, body: object = {}): Promise<T> {
   // If user has JWT token, use it
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  
+  // If user has a subdomain, add it to headers (Fix for localhost multi-tenancy)
+  if (user?.subdomain) {
+    headers['x-company-subdomain'] = user.subdomain;
   }
   
   // Build request body
@@ -193,6 +198,110 @@ export async function createPost(input: Omit<IPostCreateInput, 'boardID'> & { bo
   return apiRequest('/posts/create', input);
 }
 
+/**
+ * Upload post response type
+ */
+export interface UploadPostResponse {
+  isSuccessful: boolean;
+  message: string;
+  data: {
+    id: string;
+    title: string;
+    imageUrls: string[];
+    post: IPost;
+  };
+}
+
+/**
+ * Upload post input with files
+ */
+export interface UploadPostInput {
+  files?: File[];
+  title: string;
+  description?: string;
+  boardID: string;
+  authorID?: string;
+  email?: string;
+  categoryID?: string;
+  category?: string;
+  type?: string;
+  subCategory?: string;
+}
+
+/**
+ * Create a post with file uploads using multipart/form-data
+ */
+export async function uploadPost(input: UploadPostInput): Promise<UploadPostResponse> {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+  
+  // Check if user is authenticated (has JWT token)
+  const authState = useAuthStore.getState();
+  const { accessToken, user } = authState;
+  
+  const headers: Record<string, string> = {};
+  
+  // If user has JWT token, use it
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  
+  // If user has a subdomain, add it to headers (Fix for localhost multi-tenancy)
+  if (user?.subdomain) {
+    headers['x-company-subdomain'] = user.subdomain;
+  }
+  
+  // Build FormData
+  const formData = new FormData();
+  
+  // Append files
+  if (input.files && input.files.length > 0) {
+    input.files.forEach((file) => {
+      formData.append('files', file);
+    });
+  }
+  
+  // Append required fields
+  formData.append('title', input.title);
+  formData.append('boardID', input.boardID);
+  
+  // Append optional fields
+  if (input.description) {
+    formData.append('description', input.description);
+  }
+  if (input.authorID) {
+    formData.append('authorID', input.authorID);
+  }
+  if (input.email) {
+    formData.append('email', input.email);
+  }
+  if (input.categoryID) {
+    formData.append('categoryID', input.categoryID);
+  }
+  if (input.category) {
+    formData.append('category', input.category);
+  }
+  if (input.type) {
+    formData.append('type', input.type);
+  }
+  if (input.subCategory) {
+    formData.append('subCategory', input.subCategory);
+  }
+  
+  const response = await fetch(`${apiUrl}/posts/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to upload post');
+  }
+
+  return data;
+}
+
 export async function updatePost(postID: string, changes: Partial<IPost>): Promise<IPost> {
   return apiRequest('/posts/update', { postID, ...changes });
 }
@@ -223,6 +332,93 @@ export async function listComments(params: { postID: string; limit?: number; ski
 
 export async function createComment(input: ICommentCreateInput): Promise<IComment> {
   return apiRequest('/comments/create', input);
+}
+
+/**
+ * Upload comment response type
+ */
+export interface UploadCommentResponse {
+  isSuccessful: boolean;
+  message: string;
+  data: {
+    id: string;
+    imageUrls: string[];
+    comment: IComment;
+  };
+}
+
+/**
+ * Upload comment input with files
+ */
+export interface UploadCommentInput {
+  files?: File[];
+  postID: string;
+  value: string;
+  parentID?: string;
+  authorID?: string;
+  email?: string;
+}
+
+/**
+ * Create a comment with file uploads using multipart/form-data
+ */
+export async function uploadComment(input: UploadCommentInput): Promise<UploadCommentResponse> {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+  
+  // Check if user is authenticated (has JWT token)
+  const authState = useAuthStore.getState();
+  const { accessToken, user } = authState;
+  
+  const headers: Record<string, string> = {};
+  
+  // If user has JWT token, use it
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  
+  // If user has a subdomain, add it to headers (Fix for localhost multi-tenancy)
+  if (user?.subdomain) {
+    headers['x-company-subdomain'] = user.subdomain;
+  }
+  
+  // Build FormData
+  const formData = new FormData();
+  
+  // Append files
+  if (input.files && input.files.length > 0) {
+    input.files.forEach((file) => {
+      formData.append('files', file);
+    });
+  }
+  
+  // Append required fields
+  formData.append('postID', input.postID);
+  formData.append('value', input.value);
+  
+  // Append optional fields
+  if (input.parentID) {
+    formData.append('parentID', input.parentID);
+  }
+  if (input.authorID) {
+    formData.append('authorID', input.authorID);
+  }
+  if (input.email) {
+    formData.append('email', input.email);
+  }
+  
+  const response = await fetch(`${apiUrl}/comments/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to upload comment');
+  }
+
+  return data;
 }
 
 // ============ Categories API ============

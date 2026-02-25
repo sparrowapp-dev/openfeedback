@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import bcrypt from 'bcryptjs';
-import { User, Company } from '../../models/index.js';
+import { User, Company, Board, Category } from '../../models/index.js';
 import { generateTokens, verifyToken } from '../../services/auth.service.js';
 import { asyncHandler, AppError, apiKeyAuth, optionalSubdomainAuth } from '../../middlewares/index.js';
 import { config } from '../../config/index.js';
@@ -193,6 +193,8 @@ router.post(
         isAdmin: user.isAdmin,
         avatarURL: user.avatarURL,
         companyId: company._id.toString(),
+        companyName: company.name,
+        subdomain: company.subdomain,
       },
     });
   })
@@ -207,7 +209,7 @@ router.post(
   '/signup',
   optionalSubdomainAuth,
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { email, password, name } = req.body;
+    const { email, password, name, companyName } = req.body;
 
     if (!email || !password || !name) {
       throw new AppError('email, password, and name are required', 400);
@@ -217,14 +219,45 @@ router.post(
       throw new AppError('password must be at least 6 characters', 400);
     }
 
-    // Company should be extracted from subdomain middleware
-    const company = req.company;
+    let company = req.company;
+    let isAdmin = false;
 
-    if (!company) {
-      throw new AppError('company not found. please check your subdomain', 404);
+    // SCENARIO 1: Create new company (Explicit intent via companyName)
+    if (companyName) {
+      // If we are already on a subdomain, we generally shouldn't allow creating a NEW company context 
+      // unless we explicitly ignore the current subdomain context for new account creation.
+      // The user wants "streamlined flow", so if companyName is provided, we MUST create a new company.
+      
+      // Generate subdomain from company name
+      const subdomain = companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const existingCompany = await Company.findOne({ subdomain });
+      if (existingCompany) {
+        throw new AppError('company with this name already exists', 409);
+      }
+
+      // Generate API key
+      const { plain: apiKeyPlain, hash: apiKeyHash } = Company.generateApiKey();
+
+      // Create company
+      company = await Company.create({
+        name: companyName,
+        apiKey: apiKeyPlain,
+        apiKeyHash,
+        domainWhitelist: [],
+        subdomain,
+      });
+
+      // User will be admin of this new company
+      isAdmin = true;
+
+    } else {
+      // SCENARIO 2: Join existing company (Implicit intent via subdomain)
+      if (!company) {
+        throw new AppError('company not found. please provide companyName to create one, or check your subdomain', 404);
+      }
     }
 
-    // Check if user already exists
+    // Check if user already exists in THIS company
     const existingUser = await User.findOne({ companyID: company._id, email: email.toLowerCase() });
     if (existingUser) {
       throw new AppError('user with this email already exists', 409);
@@ -239,12 +272,39 @@ router.post(
       userID: `email_${Date.now()}`,
       name,
       email: email.toLowerCase(),
-      isAdmin: false,
+      isAdmin,
       isShadow: false,
       customFields: {
         passwordHash,
       },
+      created: new Date(),
     });
+
+    // Valid only for new company creation: Setup defaults
+    if (isAdmin && companyName) {
+      // Create default board
+      const board = await Board.create({
+        companyID: company._id,
+        ownerID: user._id,
+        name: 'Feature Requests',
+        url: 'feature-requests',
+        isPrivate: false,
+        privateComments: false,
+      });
+
+      // Create default categories
+      const defaultCategories = ['Feature Request', 'UI Improvement', 'Bug',];
+      await Category.insertMany(
+        defaultCategories.map(catName => ({
+          companyID: company._id,
+          boardID: board._id,
+          createdByID: user._id,
+          name: catName,
+          postCount: 0,
+          created: new Date(),
+        }))
+      );
+    }
 
     // Generate tokens
     const tokens = generateTokens(user);
@@ -258,6 +318,8 @@ router.post(
         isAdmin: user.isAdmin,
         avatarURL: user.avatarURL,
         companyId: company._id.toString(),
+        companyName: company.name,
+        subdomain: company.subdomain,
       },
     });
   })
@@ -281,11 +343,13 @@ router.get(
 
     try {
       const payload = verifyToken(token);
-      const user = await User.findById(payload.userId);
+      const user = await User.findById(payload.userId).populate('companyID');
 
       if (!user) {
         throw new AppError('user not found', 404);
       }
+
+      const company = user.companyID as any;
 
       res.json({
         user: {
@@ -294,7 +358,9 @@ router.get(
           email: user.email,
           isAdmin: user.isAdmin,
           avatarURL: user.avatarURL,
-          companyId: user.companyID.toString(),
+          companyId: company._id.toString(),
+          companyName: company.name,
+          subdomain: company.subdomain,
         },
       });
     } catch (error) {
@@ -426,6 +492,8 @@ router.post(
         isAdmin: user.isAdmin,
         avatarURL: user.avatarURL,
         companyId: company._id.toString(),
+        companyName: company.name,
+        subdomain: company.subdomain,
       },
     });
   })

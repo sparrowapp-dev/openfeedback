@@ -1,19 +1,24 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Board, Post, Company } from '../models/index.js';
+import { Board, Company, Post } from '../models/index.js';
 import { asyncHandler, AppError } from '../middlewares/index.js';
 
-/**
- * POST /boards/list
- * List all boards for the company
- * Canny-compatible response: { boards: [...] }
- */
 export const listBoards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  // Get companyID from auth or find default/demo company for guest users
+  const { boardID } = req.body;
+
+  // Get companyID from authenticated user first, then subdomain/context
   let companyID: mongoose.Types.ObjectId;
-  if (req.company) {
+
+  // 1. Authenticated user's company
+  if ((req as any).user) {
+    companyID = (req as any).user.companyID;
+  }
+  // 2. Company from subdomain/API key context
+  else if (req.company) {
     companyID = req.company._id;
-  } else {
+  }
+  // 3. Fallback to demo company (or first found company)
+  else {
     const defaultCompany = await Company.findOne({ subdomain: 'demo' }) || await Company.findOne();
     if (!defaultCompany) {
       throw new AppError('no companies found', 404);
@@ -21,9 +26,23 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
     companyID = defaultCompany._id;
   }
 
+  // Build match query - filter by boardID if provided
+  const matchQuery: any = { companyID: new mongoose.Types.ObjectId(companyID) };
+  if (boardID) {
+    // Validate that the board exists and belongs to this company
+    const boardExists = await Board.findOne({ 
+      _id: new mongoose.Types.ObjectId(boardID), 
+      companyID: new mongoose.Types.ObjectId(companyID) 
+    });
+    if (!boardExists) {
+      throw new AppError('board not found or does not belong to this company', 404);
+    }
+    matchQuery._id = new mongoose.Types.ObjectId(boardID);
+  }
+
   // Get boards with dynamic postCount via aggregation
   const boards = await Board.aggregate([
-    { $match: { companyID: new mongoose.Types.ObjectId(companyID) } },
+    { $match: matchQuery },
     {
       $lookup: {
         from: 'posts',
@@ -42,7 +61,8 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
         posts: 0, // Remove posts array from output
       },
     },
-    { $sort: { created: -1 } },
+    //{ $sort: { created: -1 } },
+    //{ $limit: 1 },
   ]);
 
   // Transform to Canny format
@@ -56,7 +76,6 @@ export const listBoards = asyncHandler(async (req: Request, res: Response): Prom
     token: board.token,
     url: board.url,
   }));
-
   res.json({ boards: formattedBoards });
 });
 
@@ -103,7 +122,18 @@ export const retrieveBoard = asyncHandler(async (req: Request, res: Response): P
  */
 export const createBoard = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { name, isPrivate, privateComments } = req.body;
-  const companyID = req.company!._id;
+  
+  // Safely determine companyID
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+     // For creating a board, we absolutely need authentication or API key context
+     throw new AppError('company context required to create board', 401);
+  }
 
   // Check for duplicate name/url
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
