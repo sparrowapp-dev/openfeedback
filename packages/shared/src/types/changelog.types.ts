@@ -16,6 +16,8 @@ export interface IChangelog {
   markdownDetails: string;
   /** Plain text content (no HTML) */
   plaintextDetails: string;
+  /** Short description (alias of plaintextDetails for older frontends) */
+  description?: string;
   /** Linked feature request posts */
   posts: IPost[];
   /** Published date (ISO 8601), null if draft */
@@ -60,6 +62,26 @@ export interface IChangelogCreateInput {
   publish?: boolean;
   /** Schedule for future date */
   scheduledFor?: string;
+}
+
+/**
+ * Input for updating an existing changelog entry
+ */
+export interface IChangelogUpdateInput {
+  /** Entry id to update */
+  id: string;
+  /** Updated title */
+  title?: string;
+  /** Updated markdown content */
+  markdownDetails?: string;
+  /** Updated labels to attach */
+  labels?: string[];
+  /** Updated types (new, improved, fixed) */
+  types?: string[];
+  /** Updated post IDs to link */
+  postIDs?: string[];
+  /** Whether to mark as published (true) or draft (false) */
+  publish?: boolean;
 }
 
 /**

@@ -9,7 +9,11 @@ import type {
   IUserCreateInput,
   IVoteCreateInput,
   ICommentCreateInput,
-  PostStatus 
+  PostStatus,
+  IChangelog,
+  IChangelogCreateInput,
+  IChangelogListParams,
+  IChangelogUpdateInput,
 } from '@openfeedback/shared';
 import { useAuthStore } from '../stores/authStore';
 
@@ -308,6 +312,66 @@ export async function updatePost(postID: string, changes: Partial<IPost>): Promi
 
 export async function changePostStatus(postID: string, status: PostStatus, changerID?: string): Promise<IPost> {
   return apiRequest('/posts/change_status', { postID, status, changerID });
+}
+
+// ============ Changelog API ============
+
+export async function listChangelog(
+  params: IChangelogListParams = {}
+): Promise<{ hasMore: boolean; entries: IChangelog[] }> {
+  return apiRequest('/entries/list', params);
+}
+
+export async function retrieveChangelog(id: string): Promise<IChangelog> {
+  return apiRequest('/entries/retrieve', { id });
+}
+
+export async function createChangelogEntry(
+  input: IChangelogCreateInput & { postIDs?: string[] }
+): Promise<IChangelog> {
+  const payload = {
+    title: input.title,
+    details: input.markdownDetails,
+    labels: input.labels,
+    types: input.types,
+    postIDs: input.postIDs,
+    notify: input.publish,
+  };
+
+  return apiRequest('/entries/create', payload);
+}
+
+export async function updateChangelogEntry(
+  input: IChangelogUpdateInput
+): Promise<IChangelog> {
+  const payload: any = {
+    id: input.id,
+  };
+
+  if (typeof input.title === 'string') {
+    payload.title = input.title;
+  }
+  if (typeof input.markdownDetails === 'string') {
+    payload.details = input.markdownDetails;
+  }
+  if (input.labels) {
+    payload.labels = input.labels;
+  }
+  if (input.types) {
+    payload.types = input.types;
+  }
+  if (input.postIDs) {
+    payload.postIDs = input.postIDs;
+  }
+  if (typeof input.publish === 'boolean') {
+    payload.publish = input.publish;
+  }
+
+  return apiRequest('/entries/update', payload);
+}
+
+export async function deleteChangelogEntry(id: string): Promise<string> {
+  return apiRequest('/entries/delete', { id });
 }
 
 // ============ Votes API ============

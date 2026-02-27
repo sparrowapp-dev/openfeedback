@@ -11,4 +11,4 @@ export { BoardPage, RoadmapPage, BoardCategoriesPage } from './board';
 export { PostDetailPage } from './post';
 
 // Admin pages
-export { AdminBoardsPage, AdminSettingsPage } from './admin';
+export { AdminBoardsPage, AdminSettingsPage, AdminChangelogPage } from './admin';

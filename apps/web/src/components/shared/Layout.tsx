@@ -31,6 +31,7 @@ export function Layout({ children }: LayoutProps) {
     ...(user?.isAdmin
       ? [
           { name: 'Boards', href: '/admin/boards', icon: Squares2X2Icon },
+          { name: 'Changelog', href: '/admin/changelog', icon: Squares2X2Icon },
           { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
         ]
       : []),

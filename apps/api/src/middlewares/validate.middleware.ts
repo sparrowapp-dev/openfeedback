@@ -242,3 +242,15 @@ export const changelogCreateSchema = z.object({
   postIDs: z.array(objectIdSchema).optional(),
   notify: z.boolean().default(false).optional(),
 });
+
+export const changelogUpdateSchema = z.object({
+  apiKey: z.string().optional(),
+  id: objectIdSchema,
+  title: z.string().min(1).max(500).optional(),
+  details: z.string().max(100000).optional(),
+  labels: z.array(z.string()).optional(),
+  types: z.array(z.enum(['new', 'improved', 'fixed'])).optional(),
+  postIDs: z.array(objectIdSchema).optional(),
+  // When true, mark as published (and set publishedAt); when false, mark as draft
+  publish: z.boolean().optional(),
+});
