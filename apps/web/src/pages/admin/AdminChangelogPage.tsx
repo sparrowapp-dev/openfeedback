@@ -238,7 +238,7 @@ export function AdminChangelogPage() {
             <p className="of-text-gray-600 of-mb-4">
               Keep your users informed about what’s new and improved.
             </p>
-            <Button onClick={() => setShowCreateModal(true)}>New Entry</Button>
+            <Button onClick={openCreateModal}>New Entry</Button>
           </div>
         ) : (
           <div className="of-overflow-x-auto">
@@ -294,7 +294,7 @@ export function AdminChangelogPage() {
                     <td className="of-px-6 of-py-4 of-whitespace-nowrap of-text-sm of-text-gray-500">
                       <div className="of-flex of-flex-wrap of-gap-1">
                         {entry.types.map((type) => (
-                          <Badge key={type} variant="default" size="xs">
+                          <Badge key={type} variant="default" size="sm">
                             {type}
                           </Badge>
                         ))}
@@ -304,7 +304,7 @@ export function AdminChangelogPage() {
                     <td className="of-px-6 of-py-4 of-whitespace-nowrap of-text-sm of-text-gray-500">
                       <div className="of-flex of-flex-wrap of-gap-1">
                         {entry.labels.map((label) => (
-                          <Badge key={label.id} variant="outline" size="xs">
+                          <Badge key={label.id} variant="default" size="sm">
                             {label.name}
                           </Badge>
                         ))}
@@ -464,15 +464,15 @@ export function AdminChangelogPage() {
           <div className="of-space-y-4">
             <div className="of-flex of-flex-wrap of-gap-2">
               {selectedEntry.types.map((type) => (
-                <Badge key={type} variant="default" size="xs">
-                  {type}
-                </Badge>
-              ))}
+                  <Badge key={type} variant="default" size="sm">
+                    {type}
+                  </Badge>
+                ))}
               {selectedEntry.labels.map((label) => (
-                <Badge key={label.id} variant="outline" size="xs">
-                  {label.name}
-                </Badge>
-              ))}
+                  <Badge key={label.id} variant="default" size="sm">
+                    {label.name}
+                  </Badge>
+                ))}
             </div>
 
             <div className="of-text-sm of-text-gray-500 of-space-x-4">
