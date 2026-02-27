@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { optionalSubdomainAuth, flexibleAuth, validate, changelogListSchema, changelogCreateSchema } from '../../middlewares/index.js';
-import { listChangelog, retrieveChangelog, createChangelog, deleteChangelog } from '../../controllers/index.js';
+import { optionalSubdomainAuth, flexibleAuth, validate, changelogListSchema, changelogCreateSchema, changelogUpdateSchema } from '../../middlewares/index.js';
+import { listChangelog, retrieveChangelog, createChangelog, updateChangelog, deleteChangelog } from '../../controllers/index.js';
 
 const router = Router();
 
@@ -18,6 +18,9 @@ router.post('/retrieve', retrieveChangelog);
 
 // POST /entries/create - Create a changelog entry
 router.post('/create', validate(changelogCreateSchema), createChangelog);
+
+// POST /entries/update - Update a changelog entry
+router.post('/update', validate(changelogUpdateSchema), updateChangelog);
 
 // POST /entries/delete - Delete a changelog entry
 router.post('/delete', deleteChangelog);

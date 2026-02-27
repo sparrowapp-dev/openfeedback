@@ -13,6 +13,7 @@ import {
   PostDetailPage,
   AdminBoardsPage,
   AdminSettingsPage,
+  AdminChangelogPage,
 } from './pages';
 
 // Components
@@ -110,6 +111,17 @@ function AppRoutes() {
           <ProtectedRoute requireAdmin>
             <Layout>
               <AdminBoardsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/changelog"
+        element={
+          <ProtectedRoute requireAdmin>
+            <Layout>
+              <AdminChangelogPage />
             </Layout>
           </ProtectedRoute>
         }

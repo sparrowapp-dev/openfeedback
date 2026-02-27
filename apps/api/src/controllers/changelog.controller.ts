@@ -13,13 +13,18 @@ async function formatChangelog(entry: any) {
     ? await Post.find({ _id: { $in: entry.postIDs } })
     : [];
 
+  const markdownDetails = entry.markdownDetails || '';
+  const plaintextDetails = entry.plaintextDetails || (markdownDetails ? htmlToPlainText(markdownDetails) : '');
+
   return {
     id: entry._id.toString(),
     created: entry.created?.toISOString(),
     labels: entry.labels || [],
     lastSavedAt: entry.lastSavedAt?.toISOString(),
-    markdownDetails: entry.markdownDetails || '',
-    plaintextDetails: entry.plaintextDetails || '',
+    markdownDetails,
+    plaintextDetails,
+    // description is kept for compatibility with existing frontends
+    description: plaintextDetails,
     posts: posts.map(p => ({
       id: p._id.toString(),
       title: p.title,
@@ -176,6 +181,94 @@ export const createChangelog = asyncHandler(async (req: Request, res: Response):
   }
 
   const formatted = await formatChangelog(entry);
+  res.json(formatted);
+});
+
+/**
+ * POST /entries/update
+ * Update an existing changelog entry
+ */
+export const updateChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id, title, details, labels, types, postIDs, publish } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError('invalid entry id', 400);
+  }
+
+  // Determine company context and load existing entry
+  let companyID: mongoose.Types.ObjectId;
+
+  if (req.company) {
+    companyID = req.company._id;
+  } else if ((req as any).user?.companyID) {
+    companyID = (req as any).user.companyID;
+  } else {
+    const existing = await Changelog.findById(id);
+    if (!existing) {
+      throw new AppError('entry not found', 404);
+    }
+    companyID = existing.companyID;
+  }
+
+  const existing = await Changelog.findOne({ _id: id, companyID });
+  if (!existing) {
+    throw new AppError('entry not found', 404);
+  }
+
+  // Validate and map post IDs if provided
+  let validPostIDs: mongoose.Types.ObjectId[] | undefined;
+  if (postIDs && postIDs.length > 0) {
+    const posts = await Post.find({ _id: { $in: postIDs }, companyID });
+    validPostIDs = posts.map(p => p._id);
+  }
+
+  const update: any = { lastSavedAt: new Date() };
+
+  if (typeof title === 'string') {
+    update.title = title;
+  }
+
+  if (typeof details === 'string') {
+    update.markdownDetails = details;
+    update.plaintextDetails = htmlToPlainText(details || '');
+  }
+
+  if (Array.isArray(labels)) {
+    update.labels = labels.map((label: string, index: number) => ({
+      id: `label-${index}`,
+      name: label,
+    }));
+  }
+
+  if (Array.isArray(types)) {
+    update.types = types;
+  }
+
+  if (validPostIDs) {
+    update.postIDs = validPostIDs;
+  }
+
+  if (typeof publish === 'boolean') {
+    if (publish && existing.status !== 'published') {
+      update.status = 'published';
+      update.publishedAt = new Date();
+    } else if (!publish && existing.status === 'published') {
+      update.status = 'draft';
+      update.publishedAt = undefined;
+    }
+  }
+
+  const updated = await Changelog.findOneAndUpdate(
+    { _id: id, companyID },
+    update,
+    { new: true }
+  );
+
+  if (!updated) {
+    throw new AppError('failed to update entry', 500);
+  }
+
+  const formatted = await formatChangelog(updated);
   res.json(formatted);
 });
 
