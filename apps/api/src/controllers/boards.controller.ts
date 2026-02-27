@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Board, Company, Post } from '../models/index.js';
+import { Board, Company, Post, Category } from '../models/index.js';
 import { asyncHandler, AppError } from '../middlewares/index.js';
 
 export const listBoards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -149,6 +149,17 @@ export const createBoard = asyncHandler(async (req: Request, res: Response): Pro
     isPrivate: isPrivate || false,
     privateComments: privateComments || false,
   });
+
+  // Create default categories for the new board
+  const defaultCategories = ['Feature Request', 'UI Improvement', 'Bugs'];
+  await Category.insertMany(
+    defaultCategories.map(categoryName => ({
+      companyID,
+      boardID: board._id,
+      name: categoryName,
+      postCount: 0,
+    }))
+  );
 
   res.json({
     id: board._id.toString(),
