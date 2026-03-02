@@ -12,6 +12,7 @@ import {
   ChatBubbleLeftIcon,
   PhotoIcon,
   XMarkIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import * as api from '../../services/api';
@@ -36,6 +37,10 @@ export function PostDetailPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image modal state for post attachments
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   // Get current board to retrieve available statuses
   const currentBoard = currentPost?.board ? boards.find(b => b.id === currentPost.board.id) : null;
@@ -269,6 +274,29 @@ export function PostDetailPage() {
               </p>
             )}
 
+            {/* Post Images */}
+            {currentPost.imageURLs && currentPost.imageURLs.length > 0 && (
+              <div className="of-mt-4 of-flex of-flex-wrap of-gap-2">
+                {currentPost.imageURLs.map((url, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      setActiveImageIndex(index);
+                      setIsImageModalOpen(true);
+                    }}
+                    className="of-block focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/40 of-rounded-lg"
+                  >
+                    <img
+                      src={url}
+                      alt={`Attachment ${index + 1}`}
+                      className="of-max-w-[200px] of-max-h-[150px] of-object-cover of-rounded-lg of-border of-border-gray-200 hover:of-opacity-90 of-transition-opacity"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Meta */}
             <div className="of-mt-4 of-flex of-items-center of-gap-4 of-text-sm of-text-gray-500">
               <div className="of-flex of-items-center of-gap-1">
@@ -476,6 +504,99 @@ export function PostDetailPage() {
               </Card>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Post image modal */}
+      <PostImageModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        imageURLs={currentPost.imageURLs || []}
+        activeIndex={activeImageIndex}
+        setActiveIndex={setActiveImageIndex}
+      />
+    </div>
+  );
+}
+
+// Image modal for post attachments
+function PostImageModal({
+  isOpen,
+  onClose,
+  imageURLs,
+  activeIndex,
+  setActiveIndex,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  imageURLs: string[];
+  activeIndex: number;
+  setActiveIndex: (index: number) => void;
+}) {
+  if (!isOpen || !imageURLs || imageURLs.length === 0) return null;
+
+  const total = imageURLs.length;
+
+  const goPrev = () => {
+    setActiveIndex((activeIndex - 1 + total) % total);
+  };
+
+  const goNext = () => {
+    setActiveIndex((activeIndex + 1) % total);
+  };
+
+  return (
+    <div
+      className="of-fixed of-inset-0 of-z-50 of-bg-black/70 of-flex of-items-center of-justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="of-relative of-max-w-4xl of-w-full of-mx-4 of-bg-transparent"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="of-absolute of-top-0 of-right-0 of-m-2 of-inline-flex of-items-center of-justify-center of-rounded-full of-bg-black/60 of-text-white of-p-2 hover:of-bg-black/80"
+          aria-label="Close image viewer"
+        >
+          <XMarkIcon className="of-w-5 of-h-5" />
+        </button>
+
+        {/* Image */}
+        <div className="of-flex of-items-center of-justify-center of-bg-black/40 of-rounded-lg of-overflow-hidden of-p-2">
+          <img
+            src={imageURLs[activeIndex]}
+            alt={`Attachment ${activeIndex + 1}`}
+            className="of-max-h-[80vh] of-w-auto of-rounded-lg of-object-contain"
+          />
+        </div>
+
+        {/* Navigation */}
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goPrev}
+              className="of-absolute of-left-0 of-top-1/2 of--translate-y-1/2 of-ml-2 of-inline-flex of-items-center of-justify-center of-rounded-full of-bg-black/60 of-text-white of-p-2 hover:of-bg-black/80"
+              aria-label="Previous image"
+            >
+              <ChevronLeftIcon className="of-w-5 of-h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              className="of-absolute of-right-0 of-top-1/2 of--translate-y-1/2 of-mr-2 of-inline-flex of-items-center of-justify-center of-rounded-full of-bg-black/60 of-text-white of-p-2 hover:of-bg-black/80"
+              aria-label="Next image"
+            >
+              <ChevronRightIcon className="of-w-5 of-h-5" />
+            </button>
+
+            <div className="of-absolute of-bottom-0 of-left-1/2 of--translate-x-1/2 of-mb-3 of-px-3 of-py-1 of-rounded-full of-bg-black/60 of-text-xs of-text-white">
+              {activeIndex + 1} / {total}
+            </div>
+          </>
         )}
       </div>
     </div>
