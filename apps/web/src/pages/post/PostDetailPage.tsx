@@ -42,6 +42,11 @@ export function PostDetailPage() {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  // Image modal state for comment images (posted + previews)
+  const [isCommentImageModalOpen, setIsCommentImageModalOpen] = useState(false);
+  const [commentImageViewerUrls, setCommentImageViewerUrls] = useState<string[]>([]);
+  const [commentImageActiveIndex, setCommentImageActiveIndex] = useState(0);
+
   // Get current board to retrieve available statuses
   const currentBoard = currentPost?.board ? boards.find(b => b.id === currentPost.board.id) : null;
   const availableStatuses = (currentBoard?.statuses || ['open', 'planned', 'in progress', 'complete']) as string[];
@@ -122,6 +127,12 @@ export function PostDetailPage() {
     URL.revokeObjectURL(previewUrls[index]);
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openCommentImageModal = (urls: string[], index: number) => {
+    setCommentImageViewerUrls(urls);
+    setCommentImageActiveIndex(index);
+    setIsCommentImageModalOpen(true);
   };
 
   const handleSubmitComment = async () => {
@@ -415,14 +426,20 @@ export function PostDetailPage() {
             <div className="of-mt-2 of-flex of-flex-wrap of-gap-2">
               {previewUrls.map((url, index) => (
                 <div key={url} className="of-relative of-group">
-                  <img
-                    src={url}
-                    alt={`Preview ${index + 1}`}
-                    className="of-w-16 of-h-16 of-object-cover of-rounded-lg of-border of-border-gray-200"
-                  />
                   <button
                     type="button"
-                    onClick={() => removeFile(index)}
+                    onClick={() => openCommentImageModal(previewUrls, index)}
+                    className="of-block focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/40 of-rounded-lg"
+                  >
+                    <img
+                      src={url}
+                      alt={`Preview ${index + 1}`}
+                      className="of-w-16 of-h-16 of-object-cover of-rounded-lg of-border of-border-gray-200"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeFile(index); }}
                     className="of-absolute of-top-0.5 of-right-0.5 of-w-4 of-h-4 of-bg-red-500 of-text-white of-rounded-full of-flex of-items-center of-justify-center of-opacity-0 group-hover:of-opacity-100 of-transition-opacity"
                     aria-label="Remove image"
                   >
@@ -483,19 +500,18 @@ export function PostDetailPage() {
                     {comment.imageURLs && comment.imageURLs.length > 0 && (
                       <div className="of-mt-2 of-flex of-flex-wrap of-gap-2">
                         {comment.imageURLs.map((url, index) => (
-                          <a 
-                            key={index} 
-                            href={url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="of-block"
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => openCommentImageModal(comment.imageURLs!, index)}
+                            className="of-block focus:of-outline-none focus:of-ring-2 focus:of-ring-primary/40 of-rounded-lg"
                           >
                             <img
                               src={url}
                               alt={`Attachment ${index + 1}`}
                               className="of-max-w-[200px] of-max-h-[150px] of-object-cover of-rounded-lg of-border of-border-gray-200 hover:of-opacity-90 of-transition-opacity"
                             />
-                          </a>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -514,6 +530,15 @@ export function PostDetailPage() {
         imageURLs={currentPost.imageURLs || []}
         activeIndex={activeImageIndex}
         setActiveIndex={setActiveImageIndex}
+      />
+
+      {/* Comment image modal (posted comments + previews) */}
+      <PostImageModal
+        isOpen={isCommentImageModalOpen}
+        onClose={() => setIsCommentImageModalOpen(false)}
+        imageURLs={commentImageViewerUrls}
+        activeIndex={commentImageActiveIndex}
+        setActiveIndex={setCommentImageActiveIndex}
       />
     </div>
   );
