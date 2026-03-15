@@ -32,6 +32,7 @@ async function formatChangelog(entry: any) {
     })),
     publishedAt: entry.publishedAt?.toISOString() || null,
     reactions: entry.reactions || { like: 0 },
+    releaseDate: entry.releaseDate?.toISOString() || null,
     scheduledFor: entry.scheduledFor?.toISOString() || null,
     status: entry.status,
     title: entry.title,
@@ -77,7 +78,7 @@ export const listChangelog = asyncHandler(async (req: Request, res: Response): P
     query['labels.id'] = { $in: labelIDs };
   }
 
-  const changelogQuery = Changelog.find(query).sort({ publishedAt: -1, created: -1 });
+  const changelogQuery = Changelog.find(query).sort({ releaseDate: -1, publishedAt: -1, created: -1 });
   const result = await skipPaginate(changelogQuery, { skip, limit });
 
   const entries = await Promise.all(result.items.map(entry => formatChangelog(entry)));
@@ -129,7 +130,7 @@ export const retrieveChangelog = asyncHandler(async (req: Request, res: Response
  * Create a new changelog entry
  */
 export const createChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { title, details, labels, types, postIDs, notify } = req.body;
+  const { title, details, types, postIDs, notify, releaseDate } = req.body;
   
   // Safely determine companyID
   let companyID: mongoose.Types.ObjectId;
@@ -149,11 +150,8 @@ export const createChangelog = asyncHandler(async (req: Request, res: Response):
     validPostIDs = posts.map(p => p._id);
   }
 
-  // Convert labels to proper format
-  const formattedLabels = (labels || []).map((label: string, index: number) => ({
-    id: `label-${index}`,
-    name: label,
-  }));
+  // Parse releaseDate if provided
+  const parsedReleaseDate = releaseDate ? new Date(releaseDate) : undefined;
 
   // Create entry
   const entry = await Changelog.create({
@@ -161,11 +159,11 @@ export const createChangelog = asyncHandler(async (req: Request, res: Response):
     title,
     markdownDetails: details || '',
     plaintextDetails: htmlToPlainText(details || ''),
-    labels: formattedLabels,
     types: types || [],
     postIDs: validPostIDs,
     status: notify ? 'published' : 'draft',
     publishedAt: notify ? new Date() : undefined,
+    releaseDate: parsedReleaseDate,
     lastSavedAt: new Date(),
   });
 
@@ -189,7 +187,7 @@ export const createChangelog = asyncHandler(async (req: Request, res: Response):
  * Update an existing changelog entry
  */
 export const updateChangelog = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { id, title, details, labels, types, postIDs, publish } = req.body;
+  const { id, title, details, types, postIDs, publish, releaseDate } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError('invalid entry id', 400);
@@ -233,13 +231,6 @@ export const updateChangelog = asyncHandler(async (req: Request, res: Response):
     update.plaintextDetails = htmlToPlainText(details || '');
   }
 
-  if (Array.isArray(labels)) {
-    update.labels = labels.map((label: string, index: number) => ({
-      id: `label-${index}`,
-      name: label,
-    }));
-  }
-
   if (Array.isArray(types)) {
     update.types = types;
   }
@@ -248,8 +239,13 @@ export const updateChangelog = asyncHandler(async (req: Request, res: Response):
     update.postIDs = validPostIDs;
   }
 
+  if (releaseDate !== undefined) {
+    update.releaseDate = releaseDate ? new Date(releaseDate) : null;
+  }
+
   if (typeof publish === 'boolean') {
-    if (publish && existing.status !== 'published') {
+    if (publish) {
+      // Always update publishedAt when publishing (including republish)
       update.status = 'published';
       update.publishedAt = new Date();
     } else if (!publish && existing.status === 'published') {

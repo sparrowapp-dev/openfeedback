@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { useAuthStore } from '../../stores/authStore';
 import { Button, Card, CardTitle, CardDescription, Input, Textarea, Modal, Spinner, Badge } from '../../components/ui';
 import { IChangelog } from '@openfeedback/shared';
@@ -30,9 +32,9 @@ export function AdminChangelogPage() {
   const [selectedEntry, setSelectedEntry] = useState<IChangelog | null>(null);
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
-  const [labelsInput, setLabelsInput] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['new']);
   const [publishImmediately, setPublishImmediately] = useState(true);
+  const [releaseDate, setReleaseDate] = useState<Date | null>(null);
 
   useEffect(() => {
     void fetchEntries(true);
@@ -68,9 +70,9 @@ export function AdminChangelogPage() {
     setEditingEntry(null);
     setTitle('');
     setDetails('');
-    setLabelsInput('');
     setSelectedTypes(['new']);
     setPublishImmediately(true);
+    setReleaseDate(null);
     setShowEditorModal(true);
   };
 
@@ -78,9 +80,9 @@ export function AdminChangelogPage() {
     setEditingEntry(entry);
     setTitle(entry.title);
     setDetails(entry.markdownDetails || entry.plaintextDetails || '');
-    setLabelsInput(entry.labels.map((l) => l.name).join(', '));
     setSelectedTypes(entry.types && entry.types.length ? entry.types : []);
     setPublishImmediately(entry.status === 'published');
+    setReleaseDate(entry.releaseDate ? new Date(entry.releaseDate) : null);
     setShowEditorModal(true);
   };
 
@@ -111,17 +113,12 @@ export function AdminChangelogPage() {
 
     setIsSubmitting(true);
     try {
-      const labels = labelsInput
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean);
-
       const entry = await createChangelogEntry({
         title: title.trim(),
         markdownDetails: details,
-        labels,
         types: selectedTypes,
         publish: publishImmediately,
+        releaseDate: releaseDate ? releaseDate.toISOString() : undefined,
       });
 
       toast.success(publishImmediately ? 'Changelog entry published!' : 'Changelog entry saved as draft');
@@ -129,9 +126,9 @@ export function AdminChangelogPage() {
       setShowEditorModal(false);
       setTitle('');
       setDetails('');
-      setLabelsInput('');
       setSelectedTypes(['new']);
       setPublishImmediately(true);
+      setReleaseDate(null);
     } catch (error: any) {
       console.error('Failed to create changelog entry', error);
       toast.error(error?.message || 'Failed to create changelog entry');
@@ -150,18 +147,13 @@ export function AdminChangelogPage() {
 
     setIsSubmitting(true);
     try {
-      const labels = labelsInput
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean);
-
       const updated = await updateChangelogEntry({
         id: editingEntry.id,
         title: title.trim(),
         markdownDetails: details,
-        labels,
         types: selectedTypes,
         publish: publishImmediately,
+        releaseDate: releaseDate ? releaseDate.toISOString() : null,
       });
 
       toast.success('Changelog entry updated');
@@ -195,7 +187,11 @@ export function AdminChangelogPage() {
     if (!value) return '—';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString();
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   const getDescriptionSnippet = (entry: IChangelog) => {
@@ -255,10 +251,10 @@ export function AdminChangelogPage() {
                     Types
                   </th>
                   <th className="of-px-6 of-py-3 of-text-left of-text-xs of-font-medium of-text-gray-500 of-uppercase of-tracking-wider">
-                    Labels
+                    Created
                   </th>
                   <th className="of-px-6 of-py-3 of-text-left of-text-xs of-font-medium of-text-gray-500 of-uppercase of-tracking-wider">
-                    Created
+                    Release Date
                   </th>
                   <th className="of-px-6 of-py-3 of-text-left of-text-xs of-font-medium of-text-gray-500 of-uppercase of-tracking-wider">
                     Published
@@ -302,17 +298,10 @@ export function AdminChangelogPage() {
                       </div>
                     </td>
                     <td className="of-px-6 of-py-4 of-whitespace-nowrap of-text-sm of-text-gray-500">
-                      <div className="of-flex of-flex-wrap of-gap-1">
-                        {entry.labels.map((label) => (
-                          <Badge key={label.id} variant="default" size="sm">
-                            {label.name}
-                          </Badge>
-                        ))}
-                        {entry.labels.length === 0 && <span className="of-text-xs of-text-gray-400">—</span>}
-                      </div>
+                      {formatDate(entry.created)}
                     </td>
                     <td className="of-px-6 of-py-4 of-whitespace-nowrap of-text-sm of-text-gray-500">
-                      {formatDate(entry.created)}
+                      {formatDate(entry.releaseDate)}
                     </td>
                     <td className="of-px-6 of-py-4 of-whitespace-nowrap of-text-sm of-text-gray-500">
                       {formatDate(entry.publishedAt)}
@@ -382,12 +371,25 @@ export function AdminChangelogPage() {
             rows={6}
           />
 
-          <Input
-            label="Labels (comma separated)"
-            value={labelsInput}
-            onChange={(e) => setLabelsInput(e.target.value)}
-            placeholder="e.g., dashboard, performance"
-          />
+          <div className="of-flex of-flex-col of-gap-1.5">
+            <label className="of-text-sm of-font-medium of-text-gray-700">
+              Release Date
+            </label>
+            <DatePicker
+              selected={releaseDate}
+              onChange={(date: Date | null) => setReleaseDate(date)}
+              dateFormat="MMMM d, yyyy"
+              placeholderText="Select release date"
+              isClearable
+              popperPlacement="bottom-start"
+              className="of-w-full of-px-3 of-py-2 of-border of-border-gray-300 of-rounded-lg of-text-gray-900 of-bg-white focus:of-outline-none focus:of-ring-2 focus:of-ring-primary focus:of-border-transparent of-cursor-pointer"
+              wrapperClassName="of-w-full"
+              calendarClassName="of-shadow-lg"
+              showPopperArrow={false}
+              fixedHeight
+            />
+            <p className="of-text-sm of-text-gray-500">When was this feature released?</p>
+          </div>
 
           <div className="of-space-y-2">
             <label className="of-text-sm of-font-medium of-text-gray-700">
@@ -468,17 +470,24 @@ export function AdminChangelogPage() {
                     {type}
                   </Badge>
                 ))}
-              {selectedEntry.labels.map((label) => (
-                  <Badge key={label.id} variant="default" size="sm">
-                    {label.name}
-                  </Badge>
-                ))}
             </div>
 
-            <div className="of-text-sm of-text-gray-500 of-space-x-4">
-              <span>Created: {formatDate(selectedEntry.created)}</span>
+            <div className="of-text-sm of-text-gray-500 of-flex of-flex-wrap of-gap-x-6 of-gap-y-2">
+              <div className="of-flex of-items-center of-gap-1.5">
+                <span className="of-font-medium of-text-gray-600">Created:</span>
+                <span>{formatDate(selectedEntry.created)}</span>
+              </div>
+              {selectedEntry.releaseDate && (
+                <div className="of-flex of-items-center of-gap-1.5">
+                  <span className="of-font-medium of-text-gray-600">Release:</span>
+                  <span>{formatDate(selectedEntry.releaseDate)}</span>
+                </div>
+              )}
               {selectedEntry.publishedAt && (
-                <span>Published: {formatDate(selectedEntry.publishedAt)}</span>
+                <div className="of-flex of-items-center of-gap-1.5">
+                  <span className="of-font-medium of-text-gray-600">Published:</span>
+                  <span>{formatDate(selectedEntry.publishedAt)}</span>
+                </div>
               )}
             </div>
 

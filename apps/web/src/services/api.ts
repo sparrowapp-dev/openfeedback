@@ -329,14 +329,17 @@ export async function retrieveChangelog(id: string): Promise<IChangelog> {
 export async function createChangelogEntry(
   input: IChangelogCreateInput & { postIDs?: string[] }
 ): Promise<IChangelog> {
-  const payload = {
+  const payload: any = {
     title: input.title,
     details: input.markdownDetails,
-    labels: input.labels,
     types: input.types,
     postIDs: input.postIDs,
     notify: input.publish,
   };
+
+  if (input.releaseDate) {
+    payload.releaseDate = input.releaseDate;
+  }
 
   return apiRequest('/entries/create', payload);
 }
@@ -354,9 +357,6 @@ export async function updateChangelogEntry(
   if (typeof input.markdownDetails === 'string') {
     payload.details = input.markdownDetails;
   }
-  if (input.labels) {
-    payload.labels = input.labels;
-  }
   if (input.types) {
     payload.types = input.types;
   }
@@ -365,6 +365,9 @@ export async function updateChangelogEntry(
   }
   if (typeof input.publish === 'boolean') {
     payload.publish = input.publish;
+  }
+  if (input.releaseDate !== undefined) {
+    payload.releaseDate = input.releaseDate;
   }
 
   return apiRequest('/entries/update', payload);
