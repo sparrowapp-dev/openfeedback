@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError, ZodSchema } from 'zod';
 import { AppError } from './error.middleware.js';
+import { release } from 'os';
 
 /**
  * Validation middleware factory
@@ -237,10 +238,10 @@ export const changelogCreateSchema = z.object({
   apiKey: z.string().optional(),
   title: z.string().min(1).max(500),
   details: z.string().max(100000).default(''),
-  labels: z.array(z.string()).optional(),
   types: z.array(z.enum(['new', 'improved', 'fixed'])).optional(),
   postIDs: z.array(objectIdSchema).optional(),
   notify: z.boolean().default(false).optional(),
+  releaseDate: z.string().optional(),
 });
 
 export const changelogUpdateSchema = z.object({
@@ -248,9 +249,9 @@ export const changelogUpdateSchema = z.object({
   id: objectIdSchema,
   title: z.string().min(1).max(500).optional(),
   details: z.string().max(100000).optional(),
-  labels: z.array(z.string()).optional(),
   types: z.array(z.enum(['new', 'improved', 'fixed'])).optional(),
   postIDs: z.array(objectIdSchema).optional(),
   // When true, mark as published (and set publishedAt); when false, mark as draft
   publish: z.boolean().optional(),
+  releaseDate: z.string().optional(),
 });

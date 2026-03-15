@@ -16,6 +16,7 @@ export interface IChangelogDocument extends Document {
   status: 'draft' | 'published' | 'scheduled';
   publishedAt?: Date;
   scheduledFor?: Date;
+  releaseDate?: Date;
   reactions?: {
     like?: number;
   };
@@ -75,6 +76,10 @@ const changelogSchema = new Schema<IChangelogDocument, IChangelogModel>({
   scheduledFor: {
     type: Date,
   },
+  releaseDate: {
+    type: Date,
+    index: true,
+  },
   reactions: {
     like: { type: Number, default: 0 },
   },
@@ -89,7 +94,7 @@ const changelogSchema = new Schema<IChangelogDocument, IChangelogModel>({
 });
 
 // Compound indexes
-changelogSchema.index({ companyID: 1, status: 1, publishedAt: -1 });
+changelogSchema.index({ companyID: 1, status: 1, releaseDate: -1, publishedAt: -1 });
 
 // Virtual for URL
 changelogSchema.virtual('url').get(function() {

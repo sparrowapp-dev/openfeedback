@@ -8,8 +8,8 @@ export interface IChangelog {
   id: string;
   /** Creation date (ISO 8601) */
   created: string;
-  /** Labels/categories for the changelog entry */
-  labels: IChangelogLabel[];
+  /** Labels/categories for the changelog entry (deprecated) */
+  labels?: IChangelogLabel[];
   /** Last saved date (ISO 8601) */
   lastSavedAt: string;
   /** Markdown content */
@@ -28,6 +28,8 @@ export interface IChangelog {
   };
   /** Scheduled publish date (ISO 8601) */
   scheduledFor?: string | null;
+  /** Release date for the changelog entry (ISO 8601) */
+  releaseDate?: string | null;
   /** Entry status */
   status: 'draft' | 'published' | 'scheduled';
   /** Entry title */
@@ -52,8 +54,6 @@ export interface IChangelogCreateInput {
   title: string;
   /** Markdown content */
   markdownDetails: string;
-  /** Labels to attach */
-  labels?: string[];
   /** Types (new, improved, fixed) */
   types?: string[];
   /** Post IDs to link */
@@ -62,6 +62,8 @@ export interface IChangelogCreateInput {
   publish?: boolean;
   /** Schedule for future date */
   scheduledFor?: string;
+  /** Release date (ISO 8601) */
+  releaseDate?: string;
 }
 
 /**
@@ -74,14 +76,14 @@ export interface IChangelogUpdateInput {
   title?: string;
   /** Updated markdown content */
   markdownDetails?: string;
-  /** Updated labels to attach */
-  labels?: string[];
   /** Updated types (new, improved, fixed) */
   types?: string[];
   /** Updated post IDs to link */
   postIDs?: string[];
   /** Whether to mark as published (true) or draft (false) */
   publish?: boolean;
+  /** Updated release date (ISO 8601) */
+  releaseDate?: string | null;
 }
 
 /**
