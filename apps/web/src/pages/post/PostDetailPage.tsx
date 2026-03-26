@@ -49,7 +49,7 @@ export function PostDetailPage() {
 
   // Get current board to retrieve available statuses
   const currentBoard = currentPost?.board ? boards.find(b => b.id === currentPost.board.id) : null;
-  const availableStatuses = (currentBoard?.statuses || ['open', 'planned', 'in progress', 'complete']) as string[];
+  const availableStatuses = (currentBoard?.statuses || ['open', 'under review', 'planned', 'in progress', 'complete']) as string[];
 
   // Load categories when board is available
   useEffect(() => {
